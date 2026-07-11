@@ -1,5 +1,10 @@
 import { api } from "boot/axios";
 import { defineStore } from "pinia";
+import {
+	DEVTEST_API_SERVER,
+	isDevtestHost,
+	resolveServerUrl,
+} from "src/apiBase";
 
 export const useMainStore = defineStore("main", {
 	state: () => ({
@@ -15,10 +20,10 @@ export const useMainStore = defineStore("main", {
 	}),
 	getters: {
 		serverUrl() {
-			if (process.env.NODE_ENV === "development") {
-				return process.env.VUE_APP_SERVER_URL || "http://localhost:8787";
-			}
-			return window.location.origin;
+			return resolveServerUrl({
+				hostname: window.location.hostname,
+				origin: window.location.origin,
+			});
 		},
 	},
 	actions: {
@@ -38,9 +43,15 @@ export const useMainStore = defineStore("main", {
 				this.buckets = response.data.buckets;
 
 				const url = new URL(window.location.href);
+				// Strip the router base so the check also works when the app is
+				// served from a sub-path (e.g. GitHub Pages project sites)
+				const base = router.options?.history?.base || "";
+				const path = url.pathname.startsWith(base)
+					? url.pathname.slice(base.length) || "/"
+					: url.pathname;
 				if (url.searchParams.get("next")) {
 					await router.replace(url.searchParams.get("next"));
-				} else if (url.pathname === "/" || url.pathname === "/auth/login") {
+				} else if (path === "/" || path === "/auth/login") {
 					await router.push({
 						name: "files-home",
 						params: { bucket: this.buckets[0].name },
@@ -50,7 +61,7 @@ export const useMainStore = defineStore("main", {
 				return true;
 			} catch (error) {
 				console.log(error);
-				if (error.response.status === 302) {
+				if (error.response?.status === 302) {
 					// Handle cloudflare access login page
 					const nextUrl = error.response.headers.Location;
 					if (nextUrl) {
@@ -59,7 +70,7 @@ export const useMainStore = defineStore("main", {
 				}
 
 				if (handleError) {
-					const respText = await error.response.data;
+					const respText = error.response ? await error.response.data : "";
 					if (respText === "Authentication error: Basic Auth required") {
 						await router.push({
 							name: "login",
@@ -68,9 +79,26 @@ export const useMainStore = defineStore("main", {
 						return;
 					}
 
+					// Error bodies can be full HTML pages (e.g. Cloudflare Access
+					// or GitHub Pages 404s) — never dump those into a toast
+					let message =
+						typeof respText === "string" &&
+						respText.length > 0 &&
+						respText.length <= 200 &&
+						!respText.includes("<")
+							? respText
+							: `Unable to load the server config (${error.response?.status || "network error"})`;
+
+					if (
+						isDevtestHost(window.location.hostname) &&
+						(!error.response || error.response.status === 403)
+					) {
+						message = `Cloudflare Access blocked the API request. Sign in at ${DEVTEST_API_SERVER} in this browser, then reload this page.`;
+					}
+
 					q.notify({
 						type: "negative",
-						message: respText,
+						message,
 						timeout: 10000, // we will timeout it in 10s
 					});
 				} else {
