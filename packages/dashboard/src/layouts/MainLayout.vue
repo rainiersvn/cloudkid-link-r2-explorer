@@ -1,7 +1,7 @@
 <template>
   <q-layout view="hHh LpR lFr">
 
-    <q-header reveal class="bg-green text-white">
+    <q-header reveal class="bg-brand-header text-white">
       <q-toolbar>
 
         <top-bar @toggle="toggleLeftDrawer"/>

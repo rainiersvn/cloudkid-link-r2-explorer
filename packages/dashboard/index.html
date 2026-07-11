@@ -17,6 +17,11 @@
     <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
     <link rel="icon" type="image/ico" href="favicon.ico">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
     <style>
       .initialLoading {
         margin: 0;
@@ -25,8 +30,8 @@
         justify-content: center;
         align-items: center;
         min-height: 100vh;
-        background-color: #f5f5f5;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background-color: #0a0910;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       }
 
       .initialLoading .loading-container {
@@ -37,8 +42,8 @@
       .initialLoading .spinner {
         width: 50px;
         height: 50px;
-        border: 5px solid #f3f3f3;
-        border-top: 5px solid #3498db;
+        border: 5px solid #262433;
+        border-top: 5px solid #8d34f4;
         border-radius: 50%;
         animation: initialLoadingSpin 1s linear infinite;
         margin: 0 auto 1rem;
@@ -50,7 +55,9 @@
       }
 
       .initialLoading .loading-text {
-        color: #333;
+        color: #f2f0f8;
+        font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-weight: 600;
         font-size: 1.2rem;
         margin-bottom: 0.5rem;
       }
@@ -67,7 +74,7 @@
   <div class="loading-container" id="loadingContainer">
     <div class="spinner"></div>
     <p class="loading-text">Loading R2-Explorer</p>
-    <p style="color: #666; font-size: 0.9rem;">Please wait while the application initializes...</p>
+    <p style="color: #9c96ab; font-size: 0.9rem;">Please wait while the application initializes...</p>
   </div>
 </div>` + elem.innerHTML;
   </script>

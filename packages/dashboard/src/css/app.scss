@@ -3,6 +3,25 @@
   background-color: #4CAE4F;
 }
 
+// Brand, matched to rainier.cloudkid.link
+.bg-brand-header {
+  background: linear-gradient(135deg, #201e29 0%, #17151d 55%, #2a1f3d 100%);
+  border-bottom: 1px solid rgba(141, 52, 244, 0.25);
+}
+
+.text-brand-gradient {
+  background: linear-gradient(135deg, #dbb3ff, #b377f8 40%, #f6ce55);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.q-toolbar__title,
+.text-h1, .text-h2, .text-h3, .text-h4, .text-h5, .text-h6 {
+  font-family: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 600;
+}
+
 $xs-breakpoint: 718px;
 $sm-breakpoint: 1024px;
 $md-breakpoint: 1439px;

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { boot } from "quasar/wrappers";
+import { isDevtestHost, resolveServerUrl } from "src/apiBase";
 
 // Be careful when using SSR for cross-request state pollution
 // due to creating a Singleton instance here;
@@ -7,11 +8,15 @@ import { boot } from "quasar/wrappers";
 // good idea to move this instance creation inside of the
 // "export default () => {}" function below (which runs individually
 // for each client)
-let url = window.location.origin;
-if (process.env.NODE_ENV === "development") {
-	url = process.env.VUE_APP_SERVER_URL || "http://localhost:8787";
-}
-const api = axios.create({ baseURL: `${url}/api` });
+const url = resolveServerUrl({
+	hostname: window.location.hostname,
+	origin: window.location.origin,
+});
+const api = axios.create({
+	baseURL: `${url}/api`,
+	// Devtest calls are cross-origin and must carry the Cloudflare Access cookie
+	withCredentials: isDevtestHost(window.location.hostname),
+});
 
 export default boot(({ app }) => {
 	// for use inside Vue files (Options API) through this.$axios and this.$api
