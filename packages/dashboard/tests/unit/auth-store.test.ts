@@ -20,6 +20,33 @@ describe("auth-store", () => {
 	});
 
 	describe("LogIn", () => {
+		it("rejects sign-in on devtest hosts without calling the API", async () => {
+			Object.defineProperty(window, "location", {
+				value: {
+					href: "https://rainiersvn.github.io/cloudkid-link-r2-explorer/",
+					origin: "https://rainiersvn.github.io",
+					hostname: "rainiersvn.github.io",
+				},
+				writable: true,
+			});
+
+			const mockRouter = {
+				push: vi.fn(),
+				replace: vi.fn(),
+				currentRoute: { value: { fullPath: "/" } },
+			};
+
+			await expect(
+				authStore.LogIn(mockRouter as any, {
+					username: "sterben",
+					password: "sterben",
+					remind: false,
+				}),
+			).rejects.toThrow("Sign-in is disabled in the devtest preview");
+			expect(api.get).not.toHaveBeenCalled();
+			expect(api.defaults.headers.common["Authorization"]).toBeUndefined();
+		});
+
 		it("sets auth header and stores token in sessionStorage by default", async () => {
 			const serverConfig = mockServerConfig();
 			vi.mocked(api.get).mockResolvedValue({ data: serverConfig });

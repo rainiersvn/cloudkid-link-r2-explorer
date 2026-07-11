@@ -6,7 +6,6 @@ let R2EXPLORER_WORKER_NAME = process.env.R2EXPLORER_WORKER_NAME;
 const R2EXPLORER_BUCKETS = process.env.R2EXPLORER_BUCKETS;
 const R2EXPLORER_CONFIG = process.env.R2EXPLORER_CONFIG;
 const R2EXPLORER_DOMAIN = process.env.R2EXPLORER_DOMAIN;
-const R2EXPLORER_BASIC_AUTH = process.env.R2EXPLORER_BASIC_AUTH;
 const CF_API_TOKEN = process.env.CF_API_TOKEN;
 
 let baseDir = __dirname;
@@ -86,61 +85,16 @@ if (!fs.existsSync(`${baseDir}/src/`)) {
 	fs.mkdirSync(`${baseDir}/src/`);
 }
 
-// Basic-auth users come from the R2EXPLORER_BASIC_AUTH secret (one
-// "username:password" per line) so credentials never live in the repo
-// or in the R2EXPLORER_CONFIG variable.
-const basicAuthUsers = [];
-if (R2EXPLORER_BASIC_AUTH) {
-	for (const rawUser of R2EXPLORER_BASIC_AUTH.split("\n")) {
-		const user = rawUser.trim();
-		if (!user) continue;
-		const separator = user.indexOf(":");
-		if (separator < 1) {
-			console.error("R2EXPLORER_BASIC_AUTH is not set correctly!");
-			console.error("Each line must be in the format => USERNAME:PASSWORD");
-			process.exit(1);
-		}
-		basicAuthUsers.push({
-			username: user.slice(0, separator),
-			password: user.slice(separator + 1),
-		});
-	}
-}
-
-let workerSource;
-if (basicAuthUsers.length > 0) {
-	workerSource = `
-import { R2Explorer } from "r2-explorer";
-
-const config = ${R2EXPLORER_CONFIG};
-const secretUsers = ${JSON.stringify(basicAuthUsers)};
-const configUsers = Array.isArray(config.basicAuth)
-	? config.basicAuth
-	: config.basicAuth
-		? [config.basicAuth]
-		: [];
-
-export default R2Explorer({
-	...config,
-	basicAuth: [...configUsers, ...secretUsers],
-});
-`;
-} else {
-	workerSource = `
+console.log(`
 import { R2Explorer } from "r2-explorer";
 
 export default R2Explorer(${R2EXPLORER_CONFIG});
-`;
-}
+`);
+fs.writeFileSync(
+	`${baseDir}/src/index.ts`,
+	`
+import { R2Explorer } from "r2-explorer";
 
-console.log(
-	basicAuthUsers.length > 0
-		? workerSource.replace(
-				JSON.stringify(basicAuthUsers),
-				JSON.stringify(
-					basicAuthUsers.map((u) => ({ ...u, password: "[redacted]" })),
-				),
-			)
-		: workerSource,
+export default R2Explorer(${R2EXPLORER_CONFIG});
+`,
 );
-fs.writeFileSync(`${baseDir}/src/index.ts`, workerSource);
