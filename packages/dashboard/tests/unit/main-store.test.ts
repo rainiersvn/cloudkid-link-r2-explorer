@@ -108,6 +108,46 @@ describe("main-store", () => {
 			});
 		});
 
+		it("redirects to login preview on devtest hosts when the API is unreachable", async () => {
+			vi.mocked(api.get).mockRejectedValue({
+				response: { status: 403, data: "<!DOCTYPE html>Access denied page" },
+			});
+
+			Object.defineProperty(window, "location", {
+				value: {
+					href: "https://rainiersvn.github.io/cloudkid-link-r2-explorer/",
+					origin: "https://rainiersvn.github.io",
+					hostname: "rainiersvn.github.io",
+				},
+				writable: true,
+			});
+
+			const mockRouter = {
+				push: vi.fn(),
+				replace: vi.fn(),
+				currentRoute: { value: { fullPath: "/" } },
+			};
+			const notify = vi.fn();
+
+			const result = await store.loadServerConfigs(
+				mockRouter as any,
+				{ notify },
+				true,
+			);
+
+			expect(result).toBe(false);
+			expect(mockRouter.push).toHaveBeenCalledWith({ name: "login" });
+			expect(notify).toHaveBeenCalledWith(
+				expect.objectContaining({ type: "info" }),
+			);
+			// The raw HTML error body must never reach the toast
+			expect(notify).not.toHaveBeenCalledWith(
+				expect.objectContaining({
+					message: expect.stringContaining("<!DOCTYPE"),
+				}),
+			);
+		});
+
 		it("throws on error when handleError=false", async () => {
 			const error = {
 				response: { status: 500, data: "Server error" },

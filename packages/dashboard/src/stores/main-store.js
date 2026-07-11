@@ -1,10 +1,6 @@
 import { api } from "boot/axios";
 import { defineStore } from "pinia";
-import {
-	DEVTEST_API_SERVER,
-	isDevtestHost,
-	resolveServerUrl,
-} from "src/apiBase";
+import { isDevtestHost, resolveServerUrl } from "src/apiBase";
 
 export const useMainStore = defineStore("main", {
 	state: () => ({
@@ -79,22 +75,29 @@ export const useMainStore = defineStore("main", {
 						return;
 					}
 
+					// Devtest previews (GitHub Pages) have no reachable API backend,
+					// so show the login screen as a static UI preview instead of an
+					// unreachable error state
+					if (isDevtestHost(window.location.hostname)) {
+						q.notify({
+							type: "info",
+							message:
+								"Devtest preview: no API backend is connected. Use the production explorer for real data.",
+							timeout: 10000,
+						});
+						await router.push({ name: "login" });
+						return false;
+					}
+
 					// Error bodies can be full HTML pages (e.g. Cloudflare Access
 					// or GitHub Pages 404s) — never dump those into a toast
-					let message =
+					const message =
 						typeof respText === "string" &&
 						respText.length > 0 &&
 						respText.length <= 200 &&
 						!respText.includes("<")
 							? respText
 							: `Unable to load the server config (${error.response?.status || "network error"})`;
-
-					if (
-						isDevtestHost(window.location.hostname) &&
-						(!error.response || error.response.status === 403)
-					) {
-						message = `Cloudflare Access blocked the API request. Sign in at ${DEVTEST_API_SERVER} in this browser, then reload this page.`;
-					}
 
 					q.notify({
 						type: "negative",
