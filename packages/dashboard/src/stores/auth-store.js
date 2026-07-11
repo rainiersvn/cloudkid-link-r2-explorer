@@ -1,5 +1,6 @@
 import { api } from "boot/axios";
 import { defineStore } from "pinia";
+import { isDevtestHost } from "src/apiBase";
 import { useMainStore } from "stores/main-store";
 
 const SESSION_KEY = "r2_explorer_session_token";
@@ -12,6 +13,14 @@ export const useAuthStore = defineStore("auth", {
 	},
 	actions: {
 		async LogIn(router, form) {
+			// Devtest previews (GitHub Pages) have no reachable API backend,
+			// so any credentials would fail with a misleading error
+			if (isDevtestHost(window.location.hostname)) {
+				throw new Error(
+					"Sign-in is disabled in the devtest preview. Use the production explorer for real data.",
+				);
+			}
+
 			const mainStore = useMainStore();
 			const token = btoa(`${form.username}:${form.password}`);
 
