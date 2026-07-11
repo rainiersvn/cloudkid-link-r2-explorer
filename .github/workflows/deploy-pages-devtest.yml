@@ -1,0 +1,51 @@
+name: Deploy Pages (devtest)
+
+on:
+  push:
+    branches:
+      - feature
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20.x'
+      - name: Install pnpm
+        run: npm install -g pnpm
+      - name: Install dependencies
+        run: pnpm install
+      - name: Build dashboard for GitHub Pages
+        env:
+          PUBLIC_PATH: /${{ github.event.repository.name }}/
+        run: pnpm build-dashboard
+      - name: Add SPA fallback for GitHub Pages routing
+        run: cp packages/dashboard/dist/spa/index.html packages/dashboard/dist/spa/404.html
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: packages/dashboard/dist/spa
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
