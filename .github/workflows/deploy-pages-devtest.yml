@@ -1,9 +1,9 @@
 name: Deploy Pages (devtest)
 
+# Disabled: the devtest preview has no reachable API backend (see
+# packages/dashboard/src/apiBase.js), so it only ever showed a static
+# login screen. Trigger manually via workflow_dispatch if needed again.
 on:
-  push:
-    branches:
-      - feature
   workflow_dispatch:
 
 concurrency:
