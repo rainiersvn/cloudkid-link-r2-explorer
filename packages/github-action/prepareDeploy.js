@@ -1,5 +1,7 @@
 // @ts-ignore
 const fs = require("node:fs");
+// @ts-ignore
+const path = require("node:path");
 
 const WORKERS_CI = process.env.WORKERS_CI;
 let R2EXPLORER_WORKER_NAME = process.env.R2EXPLORER_WORKER_NAME;
@@ -7,6 +9,14 @@ const R2EXPLORER_BUCKETS = process.env.R2EXPLORER_BUCKETS;
 const R2EXPLORER_CONFIG = process.env.R2EXPLORER_CONFIG;
 const R2EXPLORER_DOMAIN = process.env.R2EXPLORER_DOMAIN;
 const CF_API_TOKEN = process.env.CF_API_TOKEN;
+
+// This repo's own worker/dashboard source, built by `pnpm build` before this
+// script runs. Deploying from here (instead of installing the published
+// `r2-explorer` npm package) means prod always reflects what's on this
+// branch, including local branding/customizations.
+const REPO_ROOT = path.resolve(__dirname, "..", "..");
+const WORKER_ENTRY = path.join(REPO_ROOT, "packages/worker/src/index.ts");
+const DASHBOARD_DIST = path.join(REPO_ROOT, "packages/dashboard/dist/spa");
 
 let baseDir = __dirname;
 if (WORKERS_CI === "1") {
@@ -17,6 +27,12 @@ if (WORKERS_CI === "1") {
 		console.error("CF_API_TOKEN variable is required to continue!");
 		process.exit(1);
 	}
+}
+
+if (!fs.existsSync(DASHBOARD_DIST)) {
+	console.error(`Dashboard build not found at ${DASHBOARD_DIST}`);
+	console.error("Run `pnpm build` before this script.");
+	process.exit(1);
 }
 
 if (!R2EXPLORER_WORKER_NAME) {
@@ -34,11 +50,16 @@ if (!R2EXPLORER_CONFIG) {
 	process.exit(1);
 }
 
+const assetsDir = path
+	.relative(baseDir, DASHBOARD_DIST)
+	.split(path.sep)
+	.join("/");
+
 let wranglerConfig = `
 name = "${R2EXPLORER_WORKER_NAME}"
 compatibility_date = "2024-11-06"
 main = "src/index.ts"
-assets = { directory = "node_modules/r2-explorer/dashboard", binding = "ASSETS", html_handling = "auto-trailing-slash", not_found_handling = "single-page-application", run_worker_first = ["/api/*", "/share/*"] }
+assets = { directory = "${assetsDir}", binding = "ASSETS", html_handling = "auto-trailing-slash", not_found_handling = "single-page-application", run_worker_first = ["/api/*", "/share/*"] }
 `;
 
 if (R2EXPLORER_DOMAIN) {
@@ -85,16 +106,16 @@ if (!fs.existsSync(`${baseDir}/src/`)) {
 	fs.mkdirSync(`${baseDir}/src/`);
 }
 
-console.log(`
-import { R2Explorer } from "r2-explorer";
+const workerEntryImport = path
+	.relative(path.join(baseDir, "src"), WORKER_ENTRY)
+	.replace(/\.ts$/, "")
+	.split(path.sep)
+	.join("/");
+const workerSource = `
+import { R2Explorer } from "${workerEntryImport}";
 
 export default R2Explorer(${R2EXPLORER_CONFIG});
-`);
-fs.writeFileSync(
-	`${baseDir}/src/index.ts`,
-	`
-import { R2Explorer } from "r2-explorer";
+`;
 
-export default R2Explorer(${R2EXPLORER_CONFIG});
-`,
-);
+console.log(workerSource);
+fs.writeFileSync(`${baseDir}/src/index.ts`, workerSource);
