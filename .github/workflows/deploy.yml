@@ -11,14 +11,17 @@ jobs:
     runs-on: ubuntu-latest
     name: Deploy
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Setup node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: '20.x'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: '24.x'
+          # No registry-url: nothing here installs or publishes an
+          # authenticated npm package (the "get latest version" step went away
+          # in #4), and setup-node v7 dropped the dummy NODE_AUTH_TOKEN export
+          # that made an unauthenticated .npmrc harmless.
       - name: Install pnpm
-        run: npm install -g pnpm
+        run: npm install -g pnpm@11.23.0
       - name: Install dependencies
         run: pnpm install
       - name: Build dashboard and worker from this repo
