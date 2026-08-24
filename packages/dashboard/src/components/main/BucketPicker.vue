@@ -1,5 +1,5 @@
 <template>
-    <q-select :model-value="selectedBucket" @update:model-value="changeBucket" color="blue" stack-label :dense="true" filled bg-color="white"
+    <q-select :model-value="selectedBucket" @update:model-value="changeBucket" color="primary" label-color="grey-5" stack-label :dense="true" filled
               :options="mainStore.buckets.map((obj) => obj.name)" label="Bucket" style="min-width: 100px" />
 <!--  <q-select filled :options="mainStore.buckets.map((obj) => obj.name)" label="Bucket" stack-label :dense="true" />-->
 

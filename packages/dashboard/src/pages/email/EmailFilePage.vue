@@ -2,7 +2,7 @@
   <template v-if="this.file">
   <div>
     <q-card>
-      <q-card-section class="bg-grey-2 text-black" vertical>
+      <q-card-section class="bg-brand-surface" vertical>
           <q-btn-group unelevated>
             <q-btn push icon="arrow_back" :to="{ name: `email-folder`, params: { bucket: $route.params.bucket, folder: $route.params.folder }}">
               <q-tooltip>Back</q-tooltip>
@@ -65,9 +65,9 @@
 
               <q-card>
                 <q-card-section class="q-pa-sm flex" style="align-items: center">
-                  <q-icon name="description" size="md" color="blue" class="q-mr-sm"/>
+                  <q-icon name="description" size="md" color="primary" class="q-mr-sm"/>
                   {{ attachment.filename }}
-                  <q-btn color="white" text-color="black" icon="download" class="q-mr-0 q-ml-auto" @click="downloadAtt(attachment)" />
+                  <q-btn color="primary" icon="download" class="q-mr-0 q-ml-auto" @click="downloadAtt(attachment)" />
                 </q-card-section>
               </q-card>
 
@@ -283,6 +283,16 @@ export default defineComponent({
 <style scoped lang="scss">
 iframe {
   width: 100%;
+}
+
+// Senders author HTML mail against a light background and rarely set a text
+// colour, so on the dark theme the body renders near-black on near-black.
+// Give the message its own light canvas, the way mail clients do.
+.email-wrapper {
+  background: #ffffff;
+  color: #1a1a1a;
+  border-radius: 8px;
+  padding: 8px;
 }
 
 .attachments {

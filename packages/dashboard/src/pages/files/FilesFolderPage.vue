@@ -62,7 +62,7 @@
 
           <template v-slot:no-data>
             <div class="full-width q-my-lg" v-if="!loading">
-              <h6 class="flex items-center justify-center"><q-icon name="folder" color="orange" size="lg" />This folder is empty</h6>
+              <h6 class="flex items-center justify-center"><q-icon name="folder" color="accent" size="lg" />This folder is empty</h6>
             </div>
           </template>
 

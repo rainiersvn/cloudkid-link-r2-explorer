@@ -1,0 +1,35 @@
+<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#CB8FFF"></stop>
+      <stop offset="45%" stop-color="#A864F7"></stop>
+      <stop offset="100%" stop-color="#F5C73D"></stop>
+    </linearGradient>
+    <radialGradient id="wash" cx="50%" cy="15%" r="70%">
+      <stop offset="0%" stop-color="#A864F7" stop-opacity="0.35"></stop>
+      <stop offset="100%" stop-color="#A864F7" stop-opacity="0"></stop>
+    </radialGradient>
+    <radialGradient id="wash2" cx="85%" cy="92%" r="60%">
+      <stop offset="0%" stop-color="#F5C73D" stop-opacity="0.16"></stop>
+      <stop offset="100%" stop-color="#F5C73D" stop-opacity="0"></stop>
+    </radialGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="6"></feGaussianBlur>
+    </filter>
+    <clipPath id="squircle"><rect x="0" y="0" width="128" height="128" rx="30"></rect></clipPath>
+  </defs>
+
+  <g clip-path="url(#squircle)">
+    <rect width="128" height="128" fill="#09080C"></rect>
+    <rect width="128" height="128" fill="url(#wash)"></rect>
+    <rect width="128" height="128" fill="url(#wash2)"></rect>
+    <rect x="0.75" y="0.75" width="126.5" height="126.5" rx="29.25" fill="none" stroke="#383645" stroke-width="1.5" opacity="0.6"></rect>
+
+    <circle cx="64" cy="62" r="34" fill="url(#grad)" opacity="0.22" filter="url(#glow)"></circle>
+    <circle cx="64" cy="64" r="41" fill="none" stroke="url(#grad)" stroke-width="6"></circle>
+
+    <g transform="translate(41.2,41.2) scale(1.9)" fill="none" stroke="url(#grad)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="20.48 3.52 14.6 14.6 9.4 9.4" fill="url(#grad)"></polygon><polygon points="3.52 20.48 9.4 9.4 14.6 14.6"></polygon>
+    </g>
+  </g>
+</svg>

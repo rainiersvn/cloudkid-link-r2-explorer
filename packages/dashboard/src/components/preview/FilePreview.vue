@@ -6,16 +6,16 @@
     @hide="close"
   >
     <q-card class="flex column">
-      <q-card-section class="row items-center q-p-sm bg-grey-3" style="font-size: 20px">
+      <q-card-section class="row items-center q-p-sm bg-brand-header text-white" style="font-size: 20px">
 
         <div>{{ filename }}</div>
 
         <template v-if="editMode">
           <q-btn icon="delete" label="Cancel" size="md" class="q-ml-md" color="red" dense @click="cancelEdit" />
-          <q-btn icon="save" label="Save" size="md" class="q-ml-md" color="green" dense @click="saveEdit" />
+          <q-btn icon="save" label="Save" size="md" class="btn-cta q-ml-md" dense @click="saveEdit" />
         </template>
         <template v-else>
-          <q-btn icon="edit" label="edit" size="md" class="q-ml-md" color="orange" dense @click="enableEdit" />
+          <q-btn icon="edit" label="edit" size="md" class="q-ml-md" outline color="accent" dense @click="enableEdit" />
         </template>
 
         <q-space />
@@ -40,7 +40,7 @@
         <template v-else>
           <template v-if="editMode">
             <div class="flex column" style="height: 100%">
-              <q-card class="bg-orange-2" flat square>
+              <q-card class="bg-warning-soft" flat square>
                 <q-card-section>
                   File editing is still in tests!
                 </q-card-section>
@@ -112,7 +112,7 @@
 
           <template v-else-if="fileData">
             <div class="flex column" style="height: 100%; flex-wrap: nowrap; max-width: 100%; line-break: anywhere;">
-              <q-card class="bg-orange-2" flat square>
+              <q-card class="bg-warning-soft" flat square>
                 <q-card-section>
                   This in a unknown file type, opening as text.
                 </q-card-section>
@@ -237,7 +237,8 @@ export default {
 			if (bytesToMegabytes(file.size) > 200) {
 				this.q.notify({
 					message: "File is too big to preview.",
-					color: "orange",
+					color: "warning",
+					textColor: "dark",
 				});
 
 				return;

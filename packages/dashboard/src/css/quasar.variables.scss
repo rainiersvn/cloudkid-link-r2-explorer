@@ -12,18 +12,22 @@
 // to match your app's branding.
 // Tip: Use the "Theme Builder" on Quasar's documentation website.
 
-// Brand palette, matched to rainier.cloudkid.link
-$primary   : #8d34f4;
+// Brand palette, resolved from the Cloudkid Design System tokens
+// (tokens/colors.css: --primary 268 90% 68%, --accent 45 90% 60%,
+//  --background 252 20% 4%, --card 250 16% 9%, --status-live 158 64% 52%)
+// --primary-muted rather than --primary: Quasar paints solid buttons with a
+// white label, and the vivid violet only reaches 3.6:1 against white.
+$primary   : #7f35d4;
 $secondary : #6c3baa;
-$accent    : #f6ce55;
+$accent    : #f5c73d;
 
-$dark      : #17151d;
-$dark-page : #0a0910;
+$dark      : #15131b;
+$dark-page : #09080c;
 
-$positive  : #21BA45;
+$positive  : #34d399;
 $negative  : #d94040;
 $info      : #31CCEC;
-$warning   : #F2C037;
+$warning   : #f5c73d;
 
 // Shape & type, matched to rainier.cloudkid.link
 $generic-border-radius  : 10px;

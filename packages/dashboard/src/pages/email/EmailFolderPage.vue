@@ -35,10 +35,10 @@
           <template v-slot:header>
             <tr class="q-mb-md">
               <th class="text-left">
-                <q-btn color="green" icon="refresh" :loading="loading" @click="fetchFiles">
+                <q-btn class="btn-cta" icon="refresh" :loading="loading" @click="fetchFiles">
                   <template v-slot:loading>
                     <q-spinner
-                      color="white"
+                      color="dark"
                     />
                   </template>
                 </q-btn>
@@ -55,7 +55,7 @@
                   </div>
                   <div class="mobile-last-modified mobile-subject">
                     {{prop.row.lastModified}}
-                    <q-icon v-if="prop.row.has_attachments" name="attachment" size="sm" color="black" />
+                    <q-icon v-if="prop.row.has_attachments" name="attachment" size="sm" color="grey-5" />
                   </div>
                 </div>
                 <div class="email-subject mobile-subject">
@@ -74,7 +74,7 @@
           <template v-slot:no-data>
             <div class="full-width q-my-lg" v-if="!loading">
               <h6 class="flex items-center justify-center">
-                <q-icon name="alternate_email" color="orange" size="lg" />
+                <q-icon name="alternate_email" color="accent" size="lg" />
                 This bucket doesn't have Emails
               </h6>
             </div>
@@ -82,8 +82,8 @@
 
           <template v-slot:body-cell-has_attachments="prop">
             <q-td :props="prop" :class="rowClass(prop)">
-              <q-icon v-if="prop.row.has_attachments" name="attachment" size="sm" color="black" />
-              <q-icon v-else size="sm" color="white" />
+              <q-icon v-if="prop.row.has_attachments" name="attachment" size="sm" color="grey-5" />
+              <q-icon v-else size="sm" />
             </q-td>
           </template>
         </q-table>
@@ -329,8 +329,8 @@ export default defineComponent({
 
 <style>
 .email-read {
-  background-color: #f3f7f9;
-  color: grey;
+  background-color: #1c1926;
+  color: #a09daf;
 }
 
 .email-unread {
@@ -413,7 +413,7 @@ export default defineComponent({
 //width: 100%; //display: block;
 
   &:hover {
-    box-shadow: 0 2px 2px -2px gray;
+    box-shadow: 0 2px 8px -2px rgba(141, 52, 244, 0.45);
     z-index: 10
   }
 }
