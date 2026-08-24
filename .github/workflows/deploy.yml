@@ -16,7 +16,10 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: '24.x'
-          registry-url: 'https://registry.npmjs.org'
+          # No registry-url: nothing here installs or publishes an
+          # authenticated npm package (the "get latest version" step went away
+          # in #4), and setup-node v7 dropped the dummy NODE_AUTH_TOKEN export
+          # that made an unauthenticated .npmrc harmless.
       - name: Install pnpm
         run: npm install -g pnpm@11.23.0
       - name: Install dependencies
