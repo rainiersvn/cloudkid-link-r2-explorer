@@ -2,3 +2,10 @@ packages:
 #  - "template"
   - "packages/*"
   - "packages/worker/dev"
+
+# pnpm 11 flipped strictDepBuilds on by default, turning the "ignored build
+# scripts" warning into ERR_PNPM_IGNORED_BUILDS and failing `pnpm install`.
+# Nothing here needs those scripts — esbuild, biome, workerd and sharp all
+# resolve their binaries via optionalDependencies — so keep the pnpm 10
+# behaviour rather than approving twelve postinstall scripts.
+strictDepBuilds: false
