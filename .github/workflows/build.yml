@@ -20,13 +20,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: '20.x'
+          node-version: '24.x'
       - name: Install pnpm
-        run: npm install -g pnpm@10.34.5
+        run: npm install -g pnpm@11.23.0
       - name: Install dependencies
         run: pnpm install
       - name: Check Lint
@@ -48,13 +48,13 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: '20.x'
+          node-version: '24.x'
       - name: Install pnpm
-        run: npm install -g pnpm@10.34.5
+        run: npm install -g pnpm@11.23.0
       - name: Install dependencies
         run: pnpm install
       - name: Build dashboard

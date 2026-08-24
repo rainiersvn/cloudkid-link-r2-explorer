@@ -3,9 +3,18 @@ packages:
   - "packages/*"
   - "packages/worker/dev"
 
-# pnpm 11 flipped strictDepBuilds on by default, turning the "ignored build
-# scripts" warning into ERR_PNPM_IGNORED_BUILDS and failing `pnpm install`.
-# Nothing here needs those scripts — esbuild, biome, workerd and sharp all
-# resolve their binaries via optionalDependencies — so keep the pnpm 10
-# behaviour rather than approving twelve postinstall scripts.
-strictDepBuilds: false
+# pnpm 11 wants an explicit build decision for every dependency that ships an
+# install script, and fails `pnpm install` with ERR_PNPM_IGNORED_BUILDS until
+# it gets one — this is what broke Release, which was the only workflow on a
+# Node version new enough to pull pnpm 11 in.
+#
+# None of these need to run: esbuild, biome, workerd and sharp all resolve
+# their binaries through optionalDependencies, and lint, build, both unit
+# suites and the Playwright run are green without them.
+allowBuilds:
+  '@biomejs/biome': false
+  '@parcel/watcher': false
+  esbuild: false
+  sharp: false
+  vue-demi: false
+  workerd: false
