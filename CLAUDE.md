@@ -7,10 +7,24 @@
 
 ## Changesets
 
-Every PR must include a changeset. Run `pnpm changeset` to create one.
+Not required. Nothing consumes them: the release workflow that ran
+`changeset version` was retired, so a changeset would sit in `.changeset/`
+unread and no `CHANGELOG.md` is generated. Describe user-facing changes in the
+commit message and PR description instead.
 
-- If the PR includes user-facing changes, write a changelog entry describing what changed with examples.
-- If the PR is internal-only (refactoring, CI, docs, tooling), add an empty changeset with `pnpm changeset --empty`.
+The tooling and config are still installed, so this can be reversed by
+restoring the `pull_request` trigger in `.github/workflows/changeset-check.yml`
+and re-enabling a workflow that versions.
+
+## Workflows
+
+- `deploy.yml` — the only workflow that runs on push to `main`. Deploys the
+  worker and dashboard to Cloudflare.
+- `build.yml` — lint, build, unit tests and Playwright, on pull requests. This
+  is the regression net; `deploy` does not gate on it, so a merge with a red
+  build still ships.
+- `changeset-check.yml`, `publish.yml`, `deploy-pages-devtest.yml` — disabled,
+  `workflow_dispatch` only.
 
 ## Testing
 

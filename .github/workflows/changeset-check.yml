@@ -1,12 +1,12 @@
 name: Changeset Check
 
+# Disabled: this gated every PR on a changeset, but nothing consumes them any
+# more. The Release & Publish workflow that ran `changeset version` was retired
+# in #7, so changesets only accumulated in .changeset/ and no CHANGELOG.md was
+# ever written. The changesets tooling and config are left in place, so
+# restoring the pull_request trigger revives the gate if versioning comes back.
 on:
-  pull_request:
-    paths-ignore:
-      - 'docs/**'
-      - 'README.md'
-      - 'LICENSE'
-      - '.editorconfig'
+  workflow_dispatch:
 
 jobs:
   changeset:

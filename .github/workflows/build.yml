@@ -1,14 +1,10 @@
 name: Build
 
+# Pull requests only. Deploy does not gate on this workflow -- both fired
+# independently on push to main, so the post-merge run never blocked a bad
+# deploy; it only retested a commit this workflow had already checked on the
+# pull request. Gating the merge is where it earns its keep.
 on:
-  push:
-    paths-ignore:
-      - 'docs/**'
-      - 'README.md'
-      - 'LICENSE'
-      - '.editorconfig'
-    branches:
-      - main
   pull_request:
     paths-ignore:
       - 'docs/**'
@@ -37,13 +33,6 @@ jobs:
         run: cd packages/dashboard && pnpm test
       - name: Run Worker Tests
         run: cd packages/worker && pnpm test
-      - name: Package artifact
-        run: pnpm package
-      - name: Archive package
-        uses: actions/upload-artifact@v7
-        with:
-          name: r2-explorer-npm-package
-          path: packages/worker/r2-explorer-*
 
   e2e:
     runs-on: ubuntu-latest
