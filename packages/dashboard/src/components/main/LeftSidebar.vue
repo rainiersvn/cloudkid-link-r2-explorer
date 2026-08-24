@@ -2,7 +2,7 @@
   <div class="q-pa-md" style="height: 100%">
     <div class="flex column" style="height: 100%">
       <q-btn v-if="mainStore.apiReadonly" color="red" stack class="q-mb-lg" label="Read only" />
-      <q-btn v-else color="green" icon="add" stack class="q-mb-lg" label="New">
+      <q-btn v-else icon="add" stack class="btn-cta q-mb-lg" label="New">
         <q-menu>
           <q-list>
             <q-item clickable v-close-popup @click="$refs.createFile.open()">

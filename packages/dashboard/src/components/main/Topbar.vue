@@ -2,8 +2,8 @@
   <q-btn dense flat round icon="menu" @click="$emit('toggle')" />
 
   <q-toolbar-title style="overflow: unset" class="text-bold">
-    <q-avatar>
-      <img src="/logo-white.svg">
+    <q-avatar square>
+      <img src="/explorer-logo.svg" alt="R2-Explorer logo">
     </q-avatar>
     <span class="text-brand-gradient">R2-Explorer</span>
   </q-toolbar-title>

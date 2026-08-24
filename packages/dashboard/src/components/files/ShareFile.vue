@@ -3,7 +3,7 @@
   <q-dialog v-model="createShareModal" @hide="resetCreate">
     <q-card style="min-width: 500px;">
       <q-card-section class="row items-center">
-        <q-avatar icon="share" color="blue" text-color="white" />
+        <q-avatar icon="share" color="primary" text-color="white" />
         <span class="q-ml-sm text-h6">Share File</span>
       </q-card-section>
 
@@ -36,7 +36,7 @@
           class="q-mb-md"
         />
 
-        <div v-if="shareUrl" class="q-mt-md q-pa-md bg-grey-2 rounded-borders">
+        <div v-if="shareUrl" class="q-mt-md q-pa-md bg-brand-surface rounded-borders">
           <div class="text-subtitle2 q-mb-sm">Share Link Created!</div>
           <div class="flex items-center">
             <q-input
@@ -70,7 +70,7 @@
           v-if="!shareUrl"
           flat
           label="Create Link"
-          color="blue"
+          color="primary"
           :loading="loading"
           @click="createShare"
         />
@@ -82,7 +82,7 @@
   <q-dialog v-model="manageSharesModal" @hide="resetManage">
     <q-card style="min-width: 600px;">
       <q-card-section class="row items-center">
-        <q-avatar icon="link" color="blue" text-color="white" />
+        <q-avatar icon="link" color="primary" text-color="white" />
         <span class="q-ml-sm text-h6">Manage Share Links</span>
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
@@ -122,13 +122,13 @@
           <template v-slot:body-cell-status="props">
             <q-td :props="props">
               <q-chip
-                :color="props.row.isExpired ? 'red' : 'green'"
-                text-color="white"
+                :color="props.row.isExpired ? 'negative' : 'positive'"
+                :text-color="props.row.isExpired ? 'white' : 'dark'"
                 size="sm"
               >
                 {{ props.row.isExpired ? 'Expired' : 'Active' }}
               </q-chip>
-              <q-chip v-if="props.row.hasPassword" color="orange" text-color="white" size="sm">
+              <q-chip v-if="props.row.hasPassword" color="warning" text-color="dark" size="sm">
                 <q-icon name="lock" size="xs" />
               </q-chip>
             </q-td>
@@ -360,8 +360,10 @@ export default defineComponent({
 
 <style scoped>
 code {
-  background-color: #e9e9e9;
+  background-color: #272532;
+  color: #dbb3ff;
   padding: 0.25em;
+  border-radius: 4px;
 }
 
 .ellipsis {

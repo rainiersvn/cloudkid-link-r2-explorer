@@ -54,11 +54,12 @@ export default {
   }
 
   .card-body {
-    border-left: 1px solid #F3F4F6;
+    border-left: 1px solid #272532;
   }
 
   .card-header {
-    background-color: #38414A;
+    background: linear-gradient(135deg, #201e29 0%, #17151d 55%, #2a1f3d 100%);
+    border-bottom: 1px solid rgba(141, 52, 244, 0.25);
     color: #fff;
   }
 
@@ -81,7 +82,7 @@ export default {
 
   .upload-complete {
     text-align: end;
-    color: green;
+    color: #34d399;
   }
 }
 </style>

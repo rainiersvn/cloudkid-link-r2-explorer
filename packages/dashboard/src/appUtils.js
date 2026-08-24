@@ -311,7 +311,7 @@ export const apiHandler = {
 					sizeRaw: 0,
 					type: "folder",
 					icon: "folder",
-					color: "orange",
+					color: "accent",
 				}))
 				.filter((obj) => {
 					// Remove hidden files
@@ -381,7 +381,7 @@ export const apiHandler = {
 						sizeRaw: 0,
 						type: "folder",
 						icon: "folder",
-						color: "orange",
+						color: "accent",
 					}))
 					.filter((obj) => {
 						// Remove hidden files

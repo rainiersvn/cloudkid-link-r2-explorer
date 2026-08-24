@@ -20,13 +20,13 @@
   <q-dialog v-model="renameModal" @hide="reset">
     <q-card style="min-width: 300px;">
       <q-card-section class="row column" v-if="row">
-        <q-avatar class="q-mb-md" icon="edit" color="orange" text-color="white" />
+        <q-avatar class="q-mb-md" icon="edit" color="accent" text-color="dark" />
         <q-input v-model="renameInput" label="Standard" />
       </q-card-section>
 
       <q-card-actions align="right">
         <q-btn flat label="Cancel" color="primary" v-close-popup />
-        <q-btn flat label="Rename" color="orange" :loading="loading" @click="renameConfirm" />
+        <q-btn flat label="Rename" color="accent" :loading="loading" @click="renameConfirm" />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -43,7 +43,7 @@
             <q-input v-model="updateHttpMetadata[index].value" label="Value" />
           </div>
           <div class="flex">
-            <q-btn class="q-my-auto" round size="sm" color="orange" icon="remove" @click="updateHttpMetadata.splice(index, 1)" />
+            <q-btn class="q-my-auto" round size="sm" color="accent" text-color="dark" icon="remove" @click="updateHttpMetadata.splice(index, 1)" />
           </div>
         </div>
 
@@ -56,7 +56,7 @@
             <q-input v-model="updateCustomMetadata[index].value" label="Value" />
           </div>
           <div class="flex">
-            <q-btn class="q-my-auto" round size="sm" color="orange" icon="remove" @click="updateCustomMetadata.splice(index, 1)" />
+            <q-btn class="q-my-auto" round size="sm" color="accent" text-color="dark" icon="remove" @click="updateCustomMetadata.splice(index, 1)" />
           </div>
         </div>
 
@@ -64,7 +64,7 @@
 
       <q-card-actions align="right">
         <q-btn flat label="Cancel" color="primary" v-close-popup />
-        <q-btn flat label="Update Metadata" color="orange" :loading="loading" @click="updateConfirm" />
+        <q-btn flat label="Update Metadata" color="accent" :loading="loading" @click="updateConfirm" />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -341,7 +341,9 @@ export default defineComponent({
 
 <style scoped>
 code {
-  background-color: #e9e9e9;
+  background-color: #272532;
+  color: #dbb3ff;
   padding: 0.25em;
+  border-radius: 4px;
 }
 </style>

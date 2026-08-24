@@ -1,12 +1,42 @@
 // app global css in SCSS form
-.bg-green {
-  background-color: #4CAE4F;
-}
 
 // Brand, matched to rainier.cloudkid.link
 .bg-brand-header {
   background: linear-gradient(135deg, #201e29 0%, #17151d 55%, #2a1f3d 100%);
   border-bottom: 1px solid rgba(141, 52, 244, 0.25);
+}
+
+// Secondary surface for toolbars/wells inside cards (design system --secondary)
+.bg-brand-surface {
+  background-color: #1c1926;
+  border-bottom: 1px solid rgba(141, 52, 244, 0.18);
+}
+
+// CTA fill from the design system (--gradient-cta): purple→gold, glow on hover
+.btn-cta {
+  background: linear-gradient(to left, #a864f7, #f5c73d);
+  // --accent-foreground, not --primary-foreground: a light label falls to
+  // 1.9:1 over the gold end, while this reads on both ends of the ramp.
+  color: #121118;
+  transition: box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+
+  &:hover {
+    box-shadow: 0 0 40px rgba(141, 52, 244, 0.25), 0 0 80px rgba(141, 52, 244, 0.1);
+  }
+}
+
+// Soft gold notice banner, replaces light-mode bg-orange-2 cards
+.bg-warning-soft {
+  background-color: rgba(245, 199, 61, 0.12);
+  border: 1px solid rgba(245, 199, 61, 0.4);
+  color: #f8dc85;
+}
+
+// Tooltips on brand surfaces instead of Quasar's default grey
+.q-tooltip {
+  background: #1c1926;
+  color: #f2f0f8;
+  border: 1px solid rgba(141, 52, 244, 0.35);
 }
 
 .text-brand-gradient {
