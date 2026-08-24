@@ -120,6 +120,29 @@ test.describe("Email", () => {
 		).toBeVisible({ timeout: 5_000 });
 	});
 
+	test("switches to the mobile layout below 992px", async ({ page }) => {
+		// Pins the responsive contract of the email list. Note this does NOT
+		// guard against the rules failing to compile: Playwright's Chromium
+		// supports native CSS nesting, so it applies them even when they are
+		// emitted verbatim by a <style> block missing lang="scss". That case is
+		// caught by tests/unit/style-blocks.test.ts instead.
+		const inlineSubject = page
+			.locator("td.email-sender .email-subject.mobile-subject")
+			.filter({ hasText: "Welcome to E2E Testing" });
+		const subjectColumn = page.locator("td.email-subject", {
+			hasText: "Welcome to E2E Testing",
+		});
+
+		await page.setViewportSize({ width: 1280, height: 800 });
+		await page.goto(`/${BUCKET}/email`);
+		await expect(subjectColumn).toBeVisible({ timeout: 15_000 });
+		await expect(inlineSubject).toBeHidden();
+
+		await page.setViewportSize({ width: 600, height: 900 });
+		await expect(inlineSubject).toBeVisible();
+		await expect(subjectColumn).toBeHidden();
+	});
+
 	test("navigates between email list and Files", async ({ page }) => {
 		await page.goto(`/${BUCKET}/email`);
 		await expect(

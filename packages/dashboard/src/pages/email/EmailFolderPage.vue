@@ -327,7 +327,7 @@ export default defineComponent({
 });
 </script>
 
-<style>
+<style lang="scss">
 .email-read {
   background-color: #1c1926;
   color: #a09daf;
@@ -409,8 +409,6 @@ export default defineComponent({
   display: flex;
   width: 100%;
   justify-content: center;
-
-//width: 100%; //display: block;
 
   &:hover {
     box-shadow: 0 2px 8px -2px rgba(141, 52, 244, 0.45);
