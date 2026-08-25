@@ -9,7 +9,12 @@
 </template>
 <script>
 import { getDocument } from "pdfjs-dist";
-import PdfjsWorker from "pdfjs-dist/build/pdf.worker.entry";
+// Side-effect import: this file has no exports, it assigns
+// `window.pdfjsWorker`, which pdf.js looks for when deciding whether it can set
+// up a worker without fetching GlobalWorkerOptions.workerSrc (see
+// `mainWorkerMessageHandler` in pdf.js). It used to be written as a default
+// import, which vite 8 rejects because there is no default export to bind.
+import "pdfjs-dist/build/pdf.worker.entry";
 import {
 	DefaultAnnotationLayerFactory,
 	DefaultTextLayerFactory,

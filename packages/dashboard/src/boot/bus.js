@@ -1,7 +1,7 @@
 import { EventBus } from "quasar";
-import { boot } from "quasar/wrappers";
+import { defineBoot } from "#q-app/wrappers";
 
-export default boot(({ app }) => {
+export default defineBoot(({ app }) => {
 	const bus = new EventBus();
 
 	// for Options API

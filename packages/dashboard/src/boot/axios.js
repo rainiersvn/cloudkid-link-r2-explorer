@@ -1,6 +1,6 @@
 import axios from "axios";
-import { boot } from "quasar/wrappers";
 import { isDevtestHost, resolveServerUrl } from "src/apiBase";
+import { defineBoot } from "#q-app/wrappers";
 
 // Be careful when using SSR for cross-request state pollution
 // due to creating a Singleton instance here;
@@ -18,7 +18,7 @@ const api = axios.create({
 	withCredentials: isDevtestHost(window.location.hostname),
 });
 
-export default boot(({ app }) => {
+export default defineBoot(({ app }) => {
 	// for use inside Vue files (Options API) through this.$axios and this.$api
 
 	app.config.globalProperties.$axios = axios;
