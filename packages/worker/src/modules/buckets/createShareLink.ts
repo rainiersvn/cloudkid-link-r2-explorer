@@ -1,6 +1,7 @@
 import { OpenAPIRoute } from "chanfana";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
+import { hashPassword } from "../../foundation/password";
 import type { AppContext, ShareMetadata } from "../../types";
 
 export class CreateShareLink extends OpenAPIRoute {
@@ -88,16 +89,9 @@ export class CreateShareLink extends OpenAPIRoute {
 			});
 		}
 
-		// Hash password if provided
-		let passwordHash: string | undefined;
-		if (data.body.password) {
-			const encoder = new TextEncoder();
-			const passwordData = encoder.encode(data.body.password);
-			const hashBuffer = await crypto.subtle.digest("SHA-256", passwordData);
-			passwordHash = Array.from(new Uint8Array(hashBuffer))
-				.map((b) => b.toString(16).padStart(2, "0"))
-				.join("");
-		}
+		const passwordHash = data.body.password
+			? await hashPassword(data.body.password)
+			: undefined;
 
 		// Calculate expiration timestamp
 		const expiresAt = data.body.expiresIn
