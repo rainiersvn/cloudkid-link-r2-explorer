@@ -1,5 +1,5 @@
 packages:
-#  - "template"
+  #  - "template"
   - "packages/*"
   - "packages/worker/dev"
 
@@ -18,3 +18,10 @@ allowBuilds:
   sharp: false
   vue-demi: false
   workerd: false
+
+# CI verifies every lockfile entry against a 24h minimum release age and fails
+# the install with ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION otherwise. Without the
+# same gate here, a local `pnpm install` resolves packages published minutes ago
+# and the lockfile is only rejected once it reaches CI. Keep this in step with
+# whatever CI enforces.
+minimumReleaseAge: 1440
