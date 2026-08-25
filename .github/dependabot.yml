@@ -1,11 +1,18 @@
 version: 2
 updates:
   - package-ecosystem: "npm"
+    # Mirrors pnpm-workspace.yaml: "/" is the root manifest plus the shared
+    # pnpm-lock.yaml, "/packages/*" covers dashboard, docs, github-action and
+    # worker, and the worker's dev harness sits deeper than that glob reaches.
+    #
+    # This list previously started with "/pnpm-lock.yaml". `directories` matches
+    # directory paths only, so that entry selected nothing, and packages/dashboard
+    # was never listed at all -- which is why pdfjs-dist (2.5.207, 2020),
+    # axios and quasar have never been offered an update.
     directories:
-      - "/pnpm-lock.yaml"
-      - "/packages/worker"
+      - "/"
+      - "/packages/*"
       - "/packages/worker/dev"
-      - "/packages/github-action"
     schedule:
       interval: "weekly"
     groups:

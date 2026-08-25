@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { uploadFile, deleteObject, BUCKET } from "./helpers";
+import { uploadFile, deleteObject, minimalPdf, BUCKET } from "./helpers";
 
 test.describe("File preview", () => {
 	const testFiles = {
@@ -20,6 +20,7 @@ test.describe("File preview", () => {
 			content: "<h1>Test HTML</h1><p>Hello world</p>",
 			type: "text/html",
 		},
+		"e2e-preview.pdf": { content: minimalPdf(), type: "application/pdf" },
 	};
 
 	test.beforeAll(async ({ request }) => {
@@ -104,6 +105,43 @@ test.describe("File preview", () => {
 		await expect(
 			page.locator(".q-dialog").locator("text=Hello world"),
 		).toBeVisible();
+	});
+
+	test("renders a PDF preview", async ({ page }) => {
+		await page.goto(`/${BUCKET}/files`);
+		await expect(page.locator("text=e2e-preview.pdf")).toBeVisible({
+			timeout: 10_000,
+		});
+
+		await page.locator("text=e2e-preview.pdf").dblclick();
+
+		// Rendering is the only thing `isEvalSupported: false` in PdfVuer.vue
+		// could plausibly break, and nothing covered PDFs before. A canvas
+		// exists only once pdf.js has resolved the document (numPages drives
+		// the v-for) and rasterised a page, so this covers load and render end
+		// to end rather than just the dialog opening.
+		const canvas = page.locator("#pdfvuer canvas").first();
+		await expect(canvas).toBeVisible({ timeout: 20_000 });
+
+		// A blank canvas would satisfy the check above, so require real ink.
+		await expect
+			.poll(
+				() =>
+					canvas.evaluate((el: HTMLCanvasElement) => {
+						const ctx = el.getContext("2d");
+						if (!ctx || !el.width || !el.height) return 0;
+						const { data } = ctx.getImageData(0, 0, el.width, el.height);
+						let marked = 0;
+						for (let i = 0; i < data.length; i += 4) {
+							if (data[i] < 200 || data[i + 1] < 200 || data[i + 2] < 200) {
+								marked++;
+							}
+						}
+						return marked;
+					}),
+				{ timeout: 20_000 },
+			)
+			.toBeGreaterThan(0);
 	});
 
 	test("shows filename in preview header", async ({ page }) => {
