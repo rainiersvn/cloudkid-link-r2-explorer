@@ -98,13 +98,13 @@ test.describe("File preview", () => {
 
 		await page.locator("text=e2e-preview.html").dblclick();
 
-		// HTML content is rendered via v-html in a <pre> tag
-		await expect(page.locator(".q-dialog").locator("text=Test HTML")).toBeVisible({
+		// HTML now renders inside a sandboxed iframe rather than this document,
+		// so the content lives in a frame. See e2e/xss.spec.ts for why.
+		const frame = page.frameLocator(".q-dialog iframe.preview-frame");
+		await expect(frame.locator("text=Test HTML")).toBeVisible({
 			timeout: 10_000,
 		});
-		await expect(
-			page.locator(".q-dialog").locator("text=Hello world"),
-		).toBeVisible();
+		await expect(frame.locator("text=Hello world")).toBeVisible();
 	});
 
 	test("renders a PDF preview", async ({ page }) => {
