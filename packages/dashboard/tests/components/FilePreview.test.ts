@@ -163,7 +163,7 @@ describe("FilePreview", () => {
 		expect(wrapper.vm.open).toBe(false);
 	});
 
-	describe("csvParser", () => {
+	describe("parseCsv", () => {
 		let wrapper: any;
 
 		beforeEach(async () => {
@@ -172,8 +172,11 @@ describe("FilePreview", () => {
 			});
 		});
 
+		// The parser itself lives in src/parsers/csv.js and is covered in
+		// tests/unit/parsers.test.ts; this asserts it is still reachable from the
+		// template, which is what the v-html binding depends on.
 		it("creates table with headers from first row", () => {
-			const result = wrapper.vm.csvParser("name,age\nAlice,30");
+			const result = wrapper.vm.parseCsv("name,age\nAlice,30");
 			expect(result).toContain("<table");
 			expect(result).toContain("<th>");
 			expect(result).toContain("name");

@@ -44,6 +44,12 @@
 
       <q-card-actions vertical>
         <div class="overflow-auto d-block email-wrapper">
+          <!-- The sandbox deliberately omits allow-scripts, which is what keeps
+               hostile mail inert; allow-same-origin is only safe *because* of
+               that. resizeIframe() reads contentWindow.document to size this
+               frame, so allow-same-origin cannot be dropped without replacing
+               that mechanism first. Never add allow-scripts here: combined with
+               allow-same-origin it would hand the sender this origin. -->
           <iframe v-if="srcdoc" frameborder="0" scrolling="no" class="w-100 d-block" @load="contentFinishedLoading"
                   ref="renderWindow"
                   id="renderWindow"
@@ -51,7 +57,7 @@
                   sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
                   csp="script-src 'none'"
           />
-          <div v-else v-html="file.text.replaceAll('\n', '<br>')"></div>
+          <div v-else class="email-body">{{ file.text }}</div>
         </div>
       </q-card-actions>
 
@@ -281,6 +287,13 @@ export default defineComponent({
 </script>
 
 <style scoped lang="scss">
+// The plain-text body is interpolated rather than injected as HTML, so line
+// breaks have to come from CSS instead of the <br> tags this used to generate.
+.email-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 iframe {
   width: 100%;
 }

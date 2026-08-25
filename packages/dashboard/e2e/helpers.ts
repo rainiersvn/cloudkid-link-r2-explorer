@@ -136,13 +136,18 @@ export async function seedEmail(
 
 /**
  * Clean up all objects with a given prefix.
+ *
+ * Listed without a delimiter on purpose: with `delimiter=/` the API only
+ * returns keys sitting directly under the prefix, so seeded emails at
+ * .r2-explorer/emails/inbox/*.json survived every cleanup and accumulated
+ * across runs.
  */
 export async function cleanupPrefix(
 	request: APIRequestContext,
 	prefix: string,
 ) {
 	const resp = await request.get(
-		`${BASE}/api/buckets/${BUCKET}?prefix=${encodeKey(prefix)}&delimiter=/`,
+		`${BASE}/api/buckets/${BUCKET}?prefix=${encodeKey(prefix)}`,
 	);
 	if (resp.ok()) {
 		const data = await resp.json();
