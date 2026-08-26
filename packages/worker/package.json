@@ -58,13 +58,13 @@
 		"@cloudflare/vitest-pool-workers": "^0.10.11",
 		"@cloudflare/workers-types": "^4.20251128.0",
 		"@types/node": "^24.10.1",
-		"@vitest/coverage-istanbul": "^3.2.4",
-		"hono": "^4.10.7",
+		"@vitest/coverage-istanbul": "^3.2.7",
+		"hono": "^4.13.4",
 		"publint": "^0.3.17",
 		"tsup": "^8.5.1",
 		"typescript": "^5.9.3",
-		"vitest": "^3.2.4",
-		"wrangler": "^4.51.0"
+		"vitest": "^3.2.7",
+		"wrangler": "~4.106.0"
 	},
 	"dependencies": {
 		"@hono/cloudflare-access": "^0.3.1",

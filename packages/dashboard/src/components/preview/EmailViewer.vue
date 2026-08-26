@@ -25,7 +25,7 @@
 
     <template v-if="emailData.html">
       <br/>
-      <div class="overflow-auto" v-html="emailData.htmlAsText.replaceAll('\n', '<br>')"></div>
+      <div class="overflow-auto email-body">{{ emailData.htmlAsText }}</div>
       <hr/>
     </template>
 
@@ -33,7 +33,7 @@
       <details :open="emailData.html ? undefined : 'open'">
         <summary>Text</summary>
         <br/>
-        <div class="overflow-auto" v-html="emailData.text.replaceAll('\n', '<br>')"></div>
+        <div class="overflow-auto email-body">{{ emailData.text }}</div>
       </details>
       <hr/>
     </template>
@@ -67,7 +67,11 @@ export default {
 	methods: {
 		async parseEmail() {
 			try {
-				const parser = new PostalMime.default();
+				// `new PostalMime.default()` threw here: the default import is the
+				// class itself, so .default is undefined. The error was swallowed by
+				// the catch below, which is why .eml previews rendered an empty card.
+				// The worker's receiveEmail.ts always had this right.
+				const parser = new PostalMime();
 				const parsedEmail = await parser.parse(this.filedata);
 
 				this.emailData = parsedEmail;
@@ -84,3 +88,12 @@ export default {
 	},
 };
 </script>
+
+<style scoped lang="scss">
+// The body is interpolated rather than injected as HTML, so line breaks have
+// to come from CSS instead of the <br> tags this used to generate.
+.email-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+</style>

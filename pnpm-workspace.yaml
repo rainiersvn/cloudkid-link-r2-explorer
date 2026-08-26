@@ -1,5 +1,5 @@
 packages:
-#  - "template"
+  #  - "template"
   - "packages/*"
   - "packages/worker/dev"
 
@@ -18,3 +18,18 @@ allowBuilds:
   sharp: false
   vue-demi: false
   workerd: false
+
+# CI verifies every lockfile entry against a 24h minimum release age and fails
+# the install with ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION otherwise. Without the
+# same gate here, a local `pnpm install` resolves packages published minutes ago
+# and the lockfile is only rejected once it reaches CI. Keep this in step with
+# whatever CI enforces.
+minimumReleaseAge: 1440
+
+# Held below the newest release so the lockfile clears the minimum release age
+# above: caniuse-lite 1.0.30001810 and tar-stream 3.2.1 were both published
+# inside the window. These live here rather than under "pnpm" in package.json,
+# which pnpm 11 (what CI runs) no longer reads.
+overrides:
+  caniuse-lite: 1.0.30001809
+  tar-stream: 3.2.0

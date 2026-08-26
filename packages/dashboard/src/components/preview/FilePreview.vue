@@ -83,15 +83,15 @@
           </template>
 
           <template v-else-if="type === 'text'">
-            <div v-html="fileData.replaceAll('\n', '<br>')"></div>
+            <div class="preview-text">{{ fileData }}</div>
           </template>
 
           <template v-else-if="type === 'json'">
-            <pre v-html="JSON.stringify(fileData, null, 2)"></pre>
+            <pre class="preview-text">{{ JSON.stringify(fileData, null, 2) }}</pre>
           </template>
 
           <template v-else-if="type === 'html'">
-            <pre v-html="fileData"></pre>
+            <iframe class="preview-frame" :srcdoc="fileData" sandbox=""></iframe>
           </template>
 
           <template v-else-if="type === 'markdown'">
@@ -99,7 +99,7 @@
           </template>
 
           <template v-else-if="type === 'csv'">
-            <div class="markdown" v-html="csvParser(fileData)"></div>
+            <div class="markdown" v-html="parseCsv(fileData)"></div>
           </template>
 
           <template v-else-if="type === 'logs'">
@@ -118,7 +118,7 @@
                 </q-card-section>
               </q-card>
               <div class="file-edit">
-                <div v-html="fileData.replaceAll('\n', '<br>')"></div>
+                <div class="preview-text">{{ fileData }}</div>
               </div>
             </div>
           </template>
@@ -139,6 +139,7 @@ import {
 	bytesToMegabytes,
 	decode,
 } from "src/appUtils";
+import { parseCsv } from "src/parsers/csv";
 import { parseMarkdown } from "src/parsers/markdown";
 
 export default {
@@ -334,34 +335,7 @@ export default {
 		markdownParser(text) {
 			return parseMarkdown(text);
 		},
-		csvParser: (text) => {
-			let result = "";
-			const rows = text.split("\n");
-			if (rows.length === 0) {
-				return "<h2>Empty csv</h2>";
-			}
-
-			for (const [index, row] of rows.entries()) {
-				let line = "";
-				const columns = row
-					.split(/(\s*"[^"]+"\s*|\s*[^,]+|,)(?=,|$)/g)
-					.filter((item) => {
-						return item !== "" && item !== ",";
-					});
-
-				for (const col of columns) {
-					if (index === 0) {
-						line += `<th>${col.replaceAll('"', "")}</th>`;
-					} else {
-						line += `<td>${col.replaceAll('"', "")}</td>`;
-					}
-				}
-
-				result += `<tr>${line}</tr>`;
-			}
-
-			return `<table class="table">${result}</table>`;
-		},
+		parseCsv,
 
 		// Edit functions
 		enableEdit: function () {
@@ -449,6 +423,25 @@ export default {
 </script>
 
 <style lang="scss">
+// Text previews are interpolated rather than injected as HTML, so newlines
+// have to survive through CSS instead of <br> tags.
+.preview-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+// HTML files render in a fully restricted iframe: sandbox="" withholds both
+// allow-scripts and allow-same-origin, so the document can neither run script
+// nor reach this origin.
+.preview-frame {
+  width: 100%;
+  height: 100%;
+  min-height: 60vh;
+  border: 0;
+  background: #fff;
+}
+
 .preview-image {
   max-width: 100%;
   height: auto;

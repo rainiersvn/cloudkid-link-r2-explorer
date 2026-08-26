@@ -106,9 +106,16 @@ test.describe("Email", () => {
 
 		// After opening, the "mark as unread" button should appear
 		// (because the email was auto-marked as read)
-		const unreadBtn = page.locator(
-			'button:has(.q-icon:text-is("mark_email_unread"))',
-		);
+		//
+		// Matched by filtering the button rather than with
+		// `.q-icon:text-is(...)`: Quasar now nests the ligature inside a
+		// <span aria-hidden> rather than putting it straight in the <i>, and
+		// :text-is() matches the *smallest* element containing the text, which
+		// is that span. Filtering on the button's own text is indifferent to
+		// how deeply the icon nests it.
+		const unreadBtn = page
+			.locator("button:has(.q-icon)")
+			.filter({ hasText: /^mark_email_unread$/ });
 		await expect(unreadBtn).toBeVisible({ timeout: 10_000 });
 
 		// Click "mark as unread"
@@ -116,7 +123,9 @@ test.describe("Email", () => {
 
 		// After marking as unread, the "mark as read" button should appear
 		await expect(
-			page.locator('button:has(.q-icon:text-is("mark_email_read"))'),
+			page
+				.locator("button:has(.q-icon)")
+				.filter({ hasText: /^mark_email_read$/ }),
 		).toBeVisible({ timeout: 5_000 });
 	});
 

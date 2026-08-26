@@ -116,7 +116,41 @@ describe("Share Links Endpoints", () => {
 			const metadata = JSON.parse((await shareMetadata?.text()) || "{}");
 			expect(metadata.passwordHash).toBeDefined();
 			expect(metadata.passwordHash).not.toBe(password); // Should be hashed
-			expect(metadata.passwordHash).toHaveLength(64); // SHA-256 hex length
+
+			// pbkdf2$<iterations>$<salt>$<derived key>. The old format was a bare
+			// SHA-256 digest, which is a rainbow-table lookup from the plaintext
+			// for anyone who gets at the metadata object.
+			const [scheme, iterations, salt, derived] =
+				metadata.passwordHash.split("$");
+			expect(scheme).toBe("pbkdf2");
+			expect(Number(iterations)).toBeGreaterThanOrEqual(210_000);
+			expect(salt).toMatch(/^[0-9a-f]{32}$/);
+			expect(derived).toMatch(/^[0-9a-f]{64}$/);
+		});
+
+		it("salts each password, so identical passwords hash differently", async () => {
+			const encodedKey = btoa(testFileName);
+			const password = "same-password";
+
+			const hashes: string[] = [];
+			for (let i = 0; i < 2; i++) {
+				const response = await app.fetch(
+					createTestRequest(
+						`/api/buckets/MY_TEST_BUCKET_1/${encodedKey}/share`,
+						"POST",
+						{ password },
+					),
+					env,
+					createExecutionContext(),
+				);
+				const body = (await response.json()) as { shareId: string };
+				const stored = await MY_TEST_BUCKET_1.get(
+					`.r2-explorer/sharable-links/${body.shareId}.json`,
+				);
+				hashes.push(JSON.parse((await stored?.text()) || "{}").passwordHash);
+			}
+
+			expect(hashes[0]).not.toBe(hashes[1]);
 		});
 
 		it("should create share link with max downloads", async () => {
@@ -315,53 +349,172 @@ describe("Share Links Endpoints", () => {
 			expect(response3.status).toBe(403); // Limit reached
 		});
 
-		it.skip("should require password for protected shares", async () => {
-			// Create password-protected share
-			const encodedKey = btoa(testFileName);
-			const password = "secret123";
-			const request = createTestRequest(
-				`/api/buckets/MY_TEST_BUCKET_1/${encodedKey}/share`,
-				"POST",
-				{ password },
-			);
-			const response = await app.fetch(request, env, createExecutionContext());
-			const body = (await response.json()) as { shareId: string };
-
-			// Try without password
-			const accessRequest = new Request(
-				`http://localhost/share/${body.shareId}`,
-				{ method: "GET" },
-			);
-			const accessResponse = await app.fetch(
-				accessRequest,
+		it("does not overrun maxDownloads under concurrent access", async () => {
+			const maxDownloads = 2;
+			const response = await app.fetch(
+				createTestRequest(
+					`/api/buckets/MY_TEST_BUCKET_1/${btoa(testFileName)}/share`,
+					"POST",
+					{ maxDownloads },
+				),
 				env,
 				createExecutionContext(),
 			);
-			expect(accessResponse.status).toBe(401);
+			const { shareId } = (await response.json()) as { shareId: string };
 
-			// Try with wrong password
-			const wrongPasswordRequest = new Request(
-				`http://localhost/share/${body.shareId}?password=wrong`,
-				{ method: "GET" },
+			// Six requests started together. With the old read-modify-write counter
+			// they all read currentDownloads: 0 and all wrote back 1, so every one
+			// of them was served. The etag precondition makes the losers re-read.
+			const responses = await Promise.all(
+				Array.from({ length: 6 }, () =>
+					app.fetch(
+						new Request(`http://localhost/share/${shareId}`, { method: "GET" }),
+						env,
+						createExecutionContext(),
+					),
+				),
 			);
-			const wrongPasswordResponse = await app.fetch(
-				wrongPasswordRequest,
+
+			// Bodies stream from R2; drain them all or isolated storage cannot be
+			// torn down at the end of the test.
+			const statuses = [];
+			for (const result of responses) {
+				statuses.push(result.status);
+				await result.arrayBuffer();
+			}
+
+			expect(statuses.filter((status) => status === 200)).toHaveLength(
+				maxDownloads,
+			);
+
+			const stored = await MY_TEST_BUCKET_1.get(
+				`.r2-explorer/sharable-links/${shareId}.json`,
+			);
+			const metadata = JSON.parse((await stored?.text()) || "{}");
+			expect(metadata.currentDownloads).toBe(maxDownloads);
+		});
+
+		// The password travels in a POST body now, not a query string: a query
+		// string ends up in access logs, browser history, and the Referer header
+		// sent to whatever the downloaded file links to.
+		const createProtectedShare = async (password: string) => {
+			const response = await app.fetch(
+				createTestRequest(
+					`/api/buckets/MY_TEST_BUCKET_1/${btoa(testFileName)}/share`,
+					"POST",
+					{ password },
+				),
 				env,
 				createExecutionContext(),
 			);
-			expect(wrongPasswordResponse.status).toBe(401);
+			return ((await response.json()) as { shareId: string }).shareId;
+		};
 
-			// Try with correct password
-			const correctPasswordRequest = new Request(
-				`http://localhost/share/${body.shareId}?password=${password}`,
-				{ method: "GET" },
-			);
-			const correctPasswordResponse = await app.fetch(
-				correctPasswordRequest,
+		const submitPassword = (shareId: string, password: string) =>
+			app.fetch(
+				new Request(`http://localhost/share/${shareId}`, {
+					method: "POST",
+					headers: { "content-type": "application/x-www-form-urlencoded" },
+					body: new URLSearchParams({ password }).toString(),
+				}),
 				env,
 				createExecutionContext(),
 			);
-			expect(correctPasswordResponse.status).toBe(200);
+
+		it("prompts for a password instead of serving the file", async () => {
+			const shareId = await createProtectedShare("secret123");
+
+			const response = await app.fetch(
+				new Request(`http://localhost/share/${shareId}`, { method: "GET" }),
+				env,
+				createExecutionContext(),
+			);
+
+			expect(response.status).toBe(401);
+			expect(response.headers.get("content-type")).toContain("text/html");
+
+			const html = await response.text();
+			expect(html).toContain('name="password"');
+			// The file itself must not leak into the prompt.
+			expect(html).not.toContain(testFileContent);
+		});
+
+		it("rejects a wrong password", async () => {
+			const shareId = await createProtectedShare("secret123");
+			const response = await submitPassword(shareId, "wrong");
+
+			expect(response.status).toBe(401);
+			expect(await response.text()).toContain("not correct");
+		});
+
+		it("serves the file for the right password", async () => {
+			const shareId = await createProtectedShare("secret123");
+			const response = await submitPassword(shareId, "secret123");
+
+			expect(response.status).toBe(200);
+			expect(await response.text()).toBe(testFileContent);
+		});
+
+		it("ignores a password supplied in the query string", async () => {
+			const shareId = await createProtectedShare("secret123");
+
+			const response = await app.fetch(
+				new Request(`http://localhost/share/${shareId}?password=secret123`, {
+					method: "GET",
+				}),
+				env,
+				createExecutionContext(),
+			);
+
+			// Still the prompt, never the file -- otherwise the query-string leak
+			// this change exists to close would still be reachable.
+			expect(response.status).toBe(401);
+			expect(await response.text()).not.toContain(testFileContent);
+		});
+
+		it("accepts a legacy SHA-256 hash and upgrades it on use", async () => {
+			const password = "legacy-secret";
+			const shareId = "legacy0001";
+			const shareKey = `.r2-explorer/sharable-links/${shareId}.json`;
+
+			// Exactly what createShareLink wrote before this change.
+			const digest = await crypto.subtle.digest(
+				"SHA-256",
+				new TextEncoder().encode(password),
+			);
+			const legacyHash = Array.from(new Uint8Array(digest))
+				.map((b) => b.toString(16).padStart(2, "0"))
+				.join("");
+
+			await MY_TEST_BUCKET_1.put(
+				shareKey,
+				JSON.stringify({
+					bucket: "MY_TEST_BUCKET_1",
+					key: testFileName,
+					passwordHash: legacyHash,
+					currentDownloads: 0,
+					createdBy: "someone",
+					createdAt: Date.now(),
+				}),
+			);
+
+			const response = await submitPassword(shareId, password);
+			expect(response.status).toBe(200);
+			expect(await response.text()).toBe(testFileContent);
+
+			// The stored hash should have been replaced with the current scheme, so
+			// existing links stop being rainbow-table material once they are used.
+			const stored = await MY_TEST_BUCKET_1.get(shareKey);
+			const metadata = JSON.parse((await stored?.text()) || "{}");
+			expect(metadata.passwordHash).not.toBe(legacyHash);
+			expect(metadata.passwordHash.startsWith("pbkdf2$")).toBe(true);
+
+			// ...and the upgraded hash still verifies the same password. The body
+			// has to be consumed: it streams from R2, and an unread stream keeps a
+			// storage handle open past the test, which fails isolated-storage teardown.
+			const again = await submitPassword(shareId, password);
+			expect(again.status).toBe(200);
+			expect(await again.text()).toBe(testFileContent);
 		});
 	});
 

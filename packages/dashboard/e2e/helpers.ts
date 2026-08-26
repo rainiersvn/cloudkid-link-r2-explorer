@@ -136,13 +136,18 @@ export async function seedEmail(
 
 /**
  * Clean up all objects with a given prefix.
+ *
+ * Listed without a delimiter on purpose: with `delimiter=/` the API only
+ * returns keys sitting directly under the prefix, so seeded emails at
+ * .r2-explorer/emails/inbox/*.json survived every cleanup and accumulated
+ * across runs.
  */
 export async function cleanupPrefix(
 	request: APIRequestContext,
 	prefix: string,
 ) {
 	const resp = await request.get(
-		`${BASE}/api/buckets/${BUCKET}?prefix=${encodeKey(prefix)}&delimiter=/`,
+		`${BASE}/api/buckets/${BUCKET}?prefix=${encodeKey(prefix)}`,
 	);
 	if (resp.ok()) {
 		const data = await resp.json();
@@ -153,3 +158,38 @@ export async function cleanupPrefix(
 }
 
 export { BUCKET };
+
+/**
+ * Build a minimal but valid single-page PDF using a base-14 font.
+ *
+ * The xref offsets are computed from the assembled body rather than hardcoded,
+ * so the file stays loadable if the content stream is ever edited. Encoded as
+ * latin1 so string indices and byte offsets agree.
+ */
+export function minimalPdf(text = "E2E PDF OK"): Buffer {
+	const stream = `BT /F1 24 Tf 20 50 Td (${text}) Tj ET\n`;
+	const objects = [
+		"<< /Type /Catalog /Pages 2 0 R >>",
+		"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+		"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 120] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+		`<< /Length ${stream.length} >>\nstream\n${stream}endstream`,
+		"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+	];
+
+	let pdf = "%PDF-1.4\n";
+	const offsets: number[] = [];
+	objects.forEach((body, i) => {
+		offsets.push(pdf.length);
+		pdf += `${i + 1} 0 obj\n${body}\nendobj\n`;
+	});
+
+	const startxref = pdf.length;
+	pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+	for (const offset of offsets) {
+		pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
+	}
+	pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\n`;
+	pdf += `startxref\n${startxref}\n%%EOF\n`;
+
+	return Buffer.from(pdf, "latin1");
+}

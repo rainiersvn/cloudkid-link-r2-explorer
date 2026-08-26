@@ -93,13 +93,22 @@ test.describe("File operations", () => {
 			});
 
 			await page.locator("text=e2e-old-name.txt").click({ button: "right" });
-			await page.getByText("Rename").click();
+			await page.locator(".q-menu").getByText("Rename").click();
 
 			// Clear and type new name — input inside dialog
 			const input = page.locator(".q-dialog input");
 			await input.clear();
 			await input.fill("e2e-new-name.txt");
-			await page.getByRole("button", { name: "Rename" }).click();
+
+			// Scoped to the dialog: the context menu is still mounted at this point
+			// and its "Rename" item also exposes role=button, so an unscoped
+			// getByRole matches two elements and fails on strict mode. Whether the
+			// menu has finished unmounting is a race, which is why this only shows
+			// up on some runs.
+			await page
+				.locator(".q-dialog")
+				.getByRole("button", { name: "Rename" })
+				.click();
 
 			// New name should appear, old should disappear
 			await expect(page.locator("text=e2e-new-name.txt")).toBeVisible({

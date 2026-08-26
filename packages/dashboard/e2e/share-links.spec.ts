@@ -166,30 +166,30 @@ test.describe("Share links", () => {
 			timeout: 5_000,
 		});
 
-		// Count share links before revocation
-		const deleteButtons = page.locator(
-			'.q-dialog .q-btn[class*="text-red"], .q-dialog .q-btn .q-icon:has-text("delete")',
-		);
+		// Earlier tests in this file each create a share for the same file and
+		// nothing clears them in between, so assert on the delta rather than on
+		// an absolute row count.
+		const shareRows = page
+			.locator(".q-dialog tbody tr")
+			.filter({ hasText: "e2e-share-file.txt" });
+		const before = await shareRows.count();
+		expect(before).toBeGreaterThan(0);
 
-		// Click the first delete/revoke button (red trash icon)
-		const revokeBtn = page
-			.locator(".q-dialog")
-			.locator('button:has(.q-icon)')
-			.filter({ hasText: "delete" })
-			.first();
+		// Filtering the button beats `.q-icon:text-is("delete")`, which stopped
+		// matching when Quasar moved the ligature into a nested <span>: that
+		// selector previously sat behind an `if (count > 0)` guard, so once it
+		// matched nothing this test quietly stopped revoking anything at all.
+		await shareRows
+			.first()
+			.locator("button:has(.q-icon)")
+			.filter({ hasText: /^delete$/ })
+			.first()
+			.click();
 
-		// If there's a revoke button, click it
-		const manageDialog = page.locator(".q-dialog");
-		const trashButtons = manageDialog.locator(
-			'.q-btn .q-icon:text-is("delete")',
-		);
-		const count = await trashButtons.count();
+		// Confirm revocation in the dialog
+		await page.getByRole("button", { name: "OK" }).click();
 
-		if (count > 0) {
-			await trashButtons.first().click();
-
-			// Confirm revocation in the dialog
-			await page.getByRole("button", { name: "OK" }).click();
-		}
+		// ...and one row should be gone.
+		await expect(shareRows).toHaveCount(before - 1, { timeout: 10_000 });
 	});
 });

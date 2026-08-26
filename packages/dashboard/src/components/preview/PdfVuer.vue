@@ -9,7 +9,12 @@
 </template>
 <script>
 import { getDocument } from "pdfjs-dist";
-import PdfjsWorker from "pdfjs-dist/build/pdf.worker.entry";
+// Side-effect import: this file has no exports, it assigns
+// `window.pdfjsWorker`, which pdf.js looks for when deciding whether it can set
+// up a worker without fetching GlobalWorkerOptions.workerSrc (see
+// `mainWorkerMessageHandler` in pdf.js). It used to be written as a default
+// import, which vite 8 rejects because there is no default export to bind.
+import "pdfjs-dist/build/pdf.worker.entry";
 import {
 	DefaultAnnotationLayerFactory,
 	DefaultTextLayerFactory,
@@ -36,6 +41,16 @@ export function createLoadingTask(src, options) {
 	else if (typeof src === "object" && src !== null)
 		source = Object.assign({}, src);
 	else throw new TypeError("invalid src type");
+
+	// CVE-2024-4367: in pdfjs-dist <= 4.1.392, FontFaceObject.getPathGenerator
+	// compiles glyph outlines with `new Function`, so a PDF that forges its
+	// fontMatrix runs arbitrary JS in this origin -- and bucket contents are not
+	// trusted input (inbound email attachments land in R2 unauthenticated). We
+	// are pinned to 2.5.207 because pdfvuer@2 requires it, so apply the upstream
+	// workaround: with eval off, pdfjs interprets the same draw commands instead
+	// of codegenning them. Set after the merge so a caller-supplied src object
+	// cannot turn it back on.
+	source.isEvalSupported = false;
 
 	const loadingTask = getDocument(source).promise;
 	loadingTask.__PDFDocumentLoadingTask = true; // since PDFDocumentLoadingTask is not public

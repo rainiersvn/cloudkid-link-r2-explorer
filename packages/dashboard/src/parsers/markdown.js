@@ -1,3 +1,5 @@
+import { escapeHtml, safeUrl } from "../sanitize";
+
 /***   Regex Markdown Parser by chalarangelo   ***/
 // Replaces 'regex' with 'replacement' in 'str'
 // Curry function, usage: replaceRegex(regexVar, replacementVar) (strVar)
@@ -22,9 +24,9 @@ const codeBlockReplacer = (fullMatch) => `\n<pre>${fullMatch}</pre>`;
 const inlineCodeReplacer = (fullMatch, tagStart, tagContents) =>
 	`<code>${tagContents}</code>`;
 const imageReplacer = (fullMatch, tagTitle, tagURL) =>
-	`<img src="${tagURL}" alt="${tagTitle}" />`;
+	`<img src="${safeUrl(tagURL)}" alt="${tagTitle}" />`;
 const linkReplacer = (fullMatch, tagTitle, tagURL) =>
-	`<a href="${tagURL}">${tagTitle}</a>`;
+	`<a href="${safeUrl(tagURL)}">${tagTitle}</a>`;
 const headingReplacer = (fullMatch, tagStart, tagContents) =>
 	`\n<h${tagStart.trim().length}>${tagContents}</h${tagStart.trim().length}>`;
 const boldItalicsReplacer = (fullMatch, tagStart, tagContents) =>
@@ -117,5 +119,9 @@ const replaceMarkdown = (str) =>
 	);
 // Parser for Markdown (fixes code, adds empty lines around for parsing)
 // Usage: parseMarkdown(strVar)
+// The input is escaped before any rule runs: the result goes straight into
+// v-html, and markdown files come from buckets that accept unauthenticated
+// writes. Escaping first is also what these rules already assume -- the
+// blockquote rule matches "&gt;" as well as ">".
 export const parseMarkdown = (str) =>
-	fixCodeBlocks(replaceMarkdown(`\n${str}\n`)).trim();
+	fixCodeBlocks(replaceMarkdown(`\n${escapeHtml(str)}\n`)).trim();

@@ -143,8 +143,10 @@ export function R2Explorer(config?: R2ExplorerConfig) {
 
 	openapi.post("/api/emails/send", SendEmail);
 
-	// Public share access (no authentication required)
+	// Public share access (no authentication required). POST carries the
+	// password for protected shares -- see GetShareLink for why not a query string.
 	openapi.get("/share/:shareId", GetShareLink);
+	openapi.post("/share/:shareId", GetShareLink);
 
 	openapi.get("/", dashboardIndex);
 	openapi.get("*", dashboardRedirect);

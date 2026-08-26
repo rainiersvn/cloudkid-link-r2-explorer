@@ -1,14 +1,14 @@
 {
-  "name": "docs-new",
-  "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "dev": "vitepress dev",
-    "build": "vitepress build",
-    "preview": "vitepress preview"
-  },
-  "devDependencies": {
-    "vitepress": "^1.6.3",
-    "wrangler": "^4.20.1"
-  }
+	"name": "docs-new",
+	"version": "1.0.0",
+	"private": true,
+	"scripts": {
+		"dev": "vitepress dev",
+		"build": "vitepress build",
+		"preview": "vitepress preview"
+	},
+	"devDependencies": {
+		"vitepress": "^1.6.3",
+		"wrangler": "~4.106.0"
+	}
 }
