@@ -69,8 +69,54 @@ function passwordPrompt(retry: boolean): Response {
 			// the Referer sent to whatever the file links to.
 			"cache-control": "no-store",
 			"referrer-policy": "no-referrer",
+			// This prompt is reachable unauthenticated once Access bypasses
+			// /share/*. Lock it down: no sniffing, keep it out of search indexes,
+			// and allow only the inline <style> it needs -- nothing else, and the
+			// form may only post back to this same path.
+			"x-content-type-options": "nosniff",
+			"x-robots-tag": "noindex, nofollow",
+			"content-security-policy":
+				"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'",
 		},
 	});
+}
+
+/**
+ * Security headers for a served share file.
+ *
+ * The bytes come out of an R2 bucket that accepts unauthenticated writes (the
+ * email handler), and once Access bypasses /share/* they are served from the
+ * dashboard's own origin to anyone on the internet. Content-Disposition:
+ * attachment already stops most inline rendering; nosniff stops a browser
+ * second-guessing the type, the sandbox CSP neuters anything that does render,
+ * and X-Robots-Tag keeps shared private files out of search results.
+ */
+function hardenDownloadHeaders(headers: Headers) {
+	headers.set("cache-control", "no-store");
+	headers.set("referrer-policy", "no-referrer");
+	headers.set("x-content-type-options", "nosniff");
+	headers.set("content-security-policy", "default-src 'none'; sandbox");
+	headers.set("x-robots-tag", "noindex, nofollow");
+}
+
+/** Build the response headers for a share file from its R2 object/head result. */
+function shareFileHeaders(source: {
+	writeHttpMetadata: (headers: Headers) => void;
+	httpEtag: string;
+	key?: string;
+}): Headers {
+	const headers = new Headers();
+	source.writeHttpMetadata(headers);
+	headers.set("etag", source.httpEtag);
+
+	const fileName = (source.key || "").split("/").pop() || "download";
+	headers.set(
+		"Content-Disposition",
+		`attachment; filename="${encodeURIComponent(fileName)}"`,
+	);
+
+	hardenDownloadHeaders(headers);
+	return headers;
 }
 
 export class GetShareLink extends OpenAPIRoute {
@@ -136,6 +182,27 @@ export class GetShareLink extends OpenAPIRoute {
 		reason?: "limit" | "gone" | "contended";
 		metadata?: ShareMetadata;
 	}> {
+		// Unlimited shares: the counter is only analytics, so a lost update under
+		// concurrency is harmless. Skip the compare-and-swap entirely -- with it,
+		// a burst of legitimate simultaneous downloads (one gallery link opened by
+		// many recipients at once) exhausts the retry budget and starts handing
+		// real users a 503. A last-writer-wins put cannot do that.
+		if (!initial.maxDownloads) {
+			const next: ShareMetadata = {
+				...initial,
+				currentDownloads: initial.currentDownloads + 1,
+			};
+			try {
+				await bucket.put(shareKey(shareId), JSON.stringify(next), {
+					httpMetadata: { contentType: "application/json" },
+					customMetadata: { targetBucket: next.bucket, targetKey: next.key },
+				});
+			} catch {
+				// Best effort: never fail a download because the tally did not save.
+			}
+			return { ok: true, metadata: next };
+		}
+
 		let metadata = initial;
 		let etag = initialEtag;
 
@@ -274,6 +341,15 @@ export class GetShareLink extends OpenAPIRoute {
 			});
 		}
 
+		// A HEAD is a metadata probe, not a download. The runtime answers HEAD
+		// with the GET handler (minus the body), so without this a bodyless
+		// request would run claimDownload and silently spend the share's budget --
+		// letting anyone with the link exhaust maxDownloads, or a crawler destroy
+		// a one-shot share, without transferring a byte. Return the headers only.
+		if (c.req.method === "HEAD") {
+			return new Response(null, { headers: shareFileHeaders(exists) });
+		}
+
 		const claim = await this.claimDownload(
 			bucket,
 			shareId,
@@ -303,25 +379,11 @@ export class GetShareLink extends OpenAPIRoute {
 			});
 		}
 
-		// Return the file with proper headers
-		const headers = new Headers();
-		file.writeHttpMetadata(headers);
-		headers.set("etag", file.httpEtag);
-
-		// Add content disposition for download
-		const fileName = shareMetadata.key.split("/").pop() || "download";
-		headers.set(
-			"Content-Disposition",
-			`attachment; filename="${encodeURIComponent(fileName)}"`,
-		);
-
-		// A shared file is not something an intermediary should hold on to, and
-		// the referrer of a protected download should not carry this URL onward.
-		headers.set("cache-control", "no-store");
-		headers.set("referrer-policy", "no-referrer");
-
+		// Serve the file. shareFileHeaders() sets Content-Disposition: attachment,
+		// no-store/no-referrer, and the nosniff/CSP/noindex headers that matter
+		// now that these bytes are served unauthenticated from the app's origin.
 		return new Response(file.body, {
-			headers,
+			headers: shareFileHeaders(file),
 		});
 	}
 }

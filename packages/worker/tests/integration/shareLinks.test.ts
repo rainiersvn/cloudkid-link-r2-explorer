@@ -516,6 +516,129 @@ describe("Share Links Endpoints", () => {
 			expect(again.status).toBe(200);
 			expect(await again.text()).toBe(testFileContent);
 		});
+
+		// These previews reach the internet unauthenticated once Cloudflare Access
+		// bypasses /share/*, so the worker is the only control left.
+
+		it("a HEAD request does not spend a download", async () => {
+			const maxDownloads = 1;
+			const create = await app.fetch(
+				createTestRequest(
+					`/api/buckets/MY_TEST_BUCKET_1/${btoa(testFileName)}/share`,
+					"POST",
+					{ maxDownloads },
+				),
+				env,
+				createExecutionContext(),
+			);
+			const { shareId: limited } = (await create.json()) as {
+				shareId: string;
+			};
+
+			// The runtime answers HEAD with the GET handler minus the body. If that
+			// path claimed a download, a bodyless request would burn the only one.
+			const head = await app.fetch(
+				new Request(`http://localhost/share/${limited}`, { method: "HEAD" }),
+				env,
+				createExecutionContext(),
+			);
+			expect(head.status).toBe(200);
+			expect(head.headers.get("Content-Disposition")).toContain(testFileName);
+			expect(await head.text()).toBe(""); // HEAD carries no body
+
+			const stored = await MY_TEST_BUCKET_1.get(
+				`.r2-explorer/sharable-links/${limited}.json`,
+			);
+			const metadata = JSON.parse((await stored?.text()) || "{}");
+			expect(metadata.currentDownloads).toBe(0);
+
+			// The real download is still available afterwards.
+			const get = await app.fetch(
+				new Request(`http://localhost/share/${limited}`, { method: "GET" }),
+				env,
+				createExecutionContext(),
+			);
+			expect(get.status).toBe(200);
+			expect(await get.text()).toBe(testFileContent);
+		});
+
+		it("a HEAD on a password-protected share stays behind the password", async () => {
+			const shareId = await createProtectedShare("secret123");
+
+			const head = await app.fetch(
+				new Request(`http://localhost/share/${shareId}`, { method: "HEAD" }),
+				env,
+				createExecutionContext(),
+			);
+
+			// HEAD cannot carry the POST body the password needs, so it must get the
+			// prompt's 401 -- never a 200 that would confirm-and-expose the file.
+			expect(head.status).toBe(401);
+			expect(await head.text()).toBe("");
+		});
+
+		it("serves a download with anti-sniffing and no-index headers", async () => {
+			const create = await app.fetch(
+				createTestRequest(
+					`/api/buckets/MY_TEST_BUCKET_1/${btoa(testFileName)}/share`,
+					"POST",
+					{},
+				),
+				env,
+				createExecutionContext(),
+			);
+			const { shareId } = (await create.json()) as { shareId: string };
+
+			const response = await app.fetch(
+				new Request(`http://localhost/share/${shareId}`, { method: "GET" }),
+				env,
+				createExecutionContext(),
+			);
+			await response.arrayBuffer();
+
+			expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+			expect(response.headers.get("x-robots-tag")).toContain("noindex");
+			expect(response.headers.get("content-security-policy")).toContain(
+				"default-src 'none'",
+			);
+			expect(response.headers.get("content-disposition")).toContain(
+				"attachment",
+			);
+		});
+
+		it("does not 503 an unlimited share under heavy concurrency", async () => {
+			// No maxDownloads: the counter is analytics, so the strict compare-and-
+			// swap must not apply -- otherwise a gallery link opened by many people
+			// at once exhausts the retry budget and 503s real recipients.
+			const create = await app.fetch(
+				createTestRequest(
+					`/api/buckets/MY_TEST_BUCKET_1/${btoa(testFileName)}/share`,
+					"POST",
+					{},
+				),
+				env,
+				createExecutionContext(),
+			);
+			const { shareId } = (await create.json()) as { shareId: string };
+
+			const responses = await Promise.all(
+				Array.from({ length: 12 }, () =>
+					app.fetch(
+						new Request(`http://localhost/share/${shareId}`, { method: "GET" }),
+						env,
+						createExecutionContext(),
+					),
+				),
+			);
+
+			const statuses: number[] = [];
+			for (const result of responses) {
+				statuses.push(result.status);
+				await result.arrayBuffer();
+			}
+
+			expect(statuses.every((status) => status === 200)).toBe(true);
+		});
 	});
 
 	describe("List Shares (GET /api/buckets/:bucket/shares)", () => {
