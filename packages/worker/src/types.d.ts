@@ -34,6 +34,10 @@ export type ShareMetadata = {
 	currentDownloads: number;
 	createdBy: string;
 	createdAt: number;
+	/** Consecutive wrong password guesses since the last success. */
+	failedAttempts?: number;
+	/** Epoch ms until which further password guesses are refused. */
+	lockedUntil?: number;
 };
 
 export type AppEnv = {

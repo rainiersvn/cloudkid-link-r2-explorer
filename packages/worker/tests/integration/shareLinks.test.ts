@@ -606,6 +606,81 @@ describe("Share Links Endpoints", () => {
 			);
 		});
 
+		it("locks the share after ten wrong passwords, then refuses guesses", async () => {
+			const shareId = await createProtectedShare("secret123");
+
+			// Ten misses. The tenth crosses the threshold and locks the share.
+			for (let i = 0; i < 10; i++) {
+				const r = await submitPassword(shareId, `wrong-${i}`);
+				// The first nine are ordinary prompts; the tenth is the lockout.
+				expect([401, 429]).toContain(r.status);
+				await r.text();
+			}
+
+			// Locked: even the correct password is refused now, with a Retry-After.
+			const blocked = await submitPassword(shareId, "secret123");
+			expect(blocked.status).toBe(429);
+			expect(Number(blocked.headers.get("retry-after"))).toBeGreaterThan(0);
+
+			const stored = await MY_TEST_BUCKET_1.get(
+				`.r2-explorer/sharable-links/${shareId}.json`,
+			);
+			const metadata = JSON.parse((await stored?.text()) || "{}");
+			expect(metadata.failedAttempts).toBeGreaterThanOrEqual(10);
+			expect(metadata.lockedUntil).toBeGreaterThan(Date.now());
+		});
+
+		it("a correct password before the lockout clears the failure count", async () => {
+			const shareId = await createProtectedShare("secret123");
+
+			for (let i = 0; i < 3; i++) {
+				await (await submitPassword(shareId, "nope")).text();
+			}
+
+			// The misses were actually counted (otherwise this test would pass even
+			// with the throttle removed, and prove nothing).
+			const afterMisses = JSON.parse(
+				(await (
+					await MY_TEST_BUCKET_1.get(
+						`.r2-explorer/sharable-links/${shareId}.json`,
+					)
+				)?.text()) || "{}",
+			);
+			expect(afterMisses.failedAttempts).toBe(3);
+
+			const ok = await submitPassword(shareId, "secret123");
+			expect(ok.status).toBe(200);
+			await ok.text();
+
+			const stored = await MY_TEST_BUCKET_1.get(
+				`.r2-explorer/sharable-links/${shareId}.json`,
+			);
+			const metadata = JSON.parse((await stored?.text()) || "{}");
+			// Reset to 0, so the next visitor starts with a full budget.
+			expect(metadata.failedAttempts).toBe(0);
+			expect(metadata.lockedUntil).toBeUndefined();
+		});
+
+		it("rejects creating a share with a too-short password", async () => {
+			const prefix = ".r2-explorer/sharable-links/";
+			const before = (await MY_TEST_BUCKET_1.list({ prefix })).objects.length;
+
+			const response = await app.fetch(
+				createTestRequest(
+					`/api/buckets/MY_TEST_BUCKET_1/${btoa(testFileName)}/share`,
+					"POST",
+					{ password: "short" },
+				),
+				env,
+				createExecutionContext(),
+			);
+			expect(response.status).toBe(400);
+
+			// The rejected request wrote no new share record.
+			const after = (await MY_TEST_BUCKET_1.list({ prefix })).objects.length;
+			expect(after).toBe(before);
+		});
+
 		it("does not 503 an unlimited share under heavy concurrency", async () => {
 			// No maxDownloads: the counter is analytics, so the strict compare-and-
 			// swap must not apply -- otherwise a gallery link opened by many people
@@ -726,12 +801,12 @@ describe("Share Links Endpoints", () => {
 		it("should indicate password protection status", async () => {
 			const encodedKey = btoa(testFileName);
 
-			// Create share with password
+			// Create share with password (>= 8 chars, the creation-time minimum)
 			await app.fetch(
 				createTestRequest(
 					`/api/buckets/MY_TEST_BUCKET_1/${encodedKey}/share`,
 					"POST",
-					{ password: "secret" },
+					{ password: "secret123" },
 				),
 				env,
 				createExecutionContext(),

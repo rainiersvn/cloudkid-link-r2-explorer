@@ -11,6 +11,33 @@ const shareKey = (shareId: string) =>
 const MAX_CLAIM_ATTEMPTS = 5;
 
 /**
+ * Password-guess throttle for a single share. After FAIL_THRESHOLD consecutive
+ * wrong guesses the share stops accepting any for LOCK_MS. A successful unlock
+ * clears the count. This caps an attacker who has a leaked protected link to
+ * FAIL_THRESHOLD guesses per LOCK_MS -- roughly a thousand a day -- which a
+ * PBKDF2-per-guess dictionary attack cannot get through, and it bounds the
+ * owner's per-guess CPU cost at the same time.
+ */
+const FAIL_THRESHOLD = 10;
+const LOCK_MS = 15 * 60 * 1000;
+
+/** Refuse a guess while the share is locked out. */
+function tooManyAttempts(retryAfterMs: number): Response {
+	const seconds = Math.max(1, Math.ceil(retryAfterMs / 1000));
+	return new Response("Too many attempts. Try again later.", {
+		status: 429,
+		headers: {
+			"content-type": "text/plain; charset=utf-8",
+			"retry-after": String(seconds),
+			"cache-control": "no-store",
+			"referrer-policy": "no-referrer",
+			"x-content-type-options": "nosniff",
+			"x-robots-tag": "noindex, nofollow",
+		},
+	});
+}
+
+/**
  * Prompt for the share password.
  *
  * The form posts back to the current URL, so nothing from the request is
@@ -156,6 +183,10 @@ export class GetShareLink extends OpenAPIRoute {
 			"403": {
 				description: "Download limit reached",
 			},
+			"429": {
+				description:
+					"Too many password attempts; the share is temporarily locked",
+			},
 		},
 	};
 
@@ -191,6 +222,10 @@ export class GetShareLink extends OpenAPIRoute {
 			const next: ShareMetadata = {
 				...initial,
 				currentDownloads: initial.currentDownloads + 1,
+				// A download only happens after the password (if any) was correct, so
+				// clear the guess throttle in the same write.
+				failedAttempts: 0,
+				lockedUntil: undefined,
 			};
 			try {
 				await bucket.put(shareKey(shareId), JSON.stringify(next), {
@@ -217,6 +252,8 @@ export class GetShareLink extends OpenAPIRoute {
 			const next: ShareMetadata = {
 				...metadata,
 				currentDownloads: metadata.currentDownloads + 1,
+				failedAttempts: 0,
+				lockedUntil: undefined,
 			};
 
 			const written = await bucket.put(
@@ -242,6 +279,44 @@ export class GetShareLink extends OpenAPIRoute {
 		}
 
 		return { ok: false, reason: "contended" };
+	}
+
+	/**
+	 * Record one wrong password guess and return the resulting consecutive-failure
+	 * count. Best effort: a compare-and-swap keeps concurrent guesses from
+	 * clobbering each other's tally, but a lost race just means that guess is not
+	 * counted -- never that the download is blocked. When the count reaches the
+	 * threshold the share is locked for LOCK_MS.
+	 */
+	private async recordFailure(
+		bucket: R2Bucket,
+		shareId: string,
+		metadata: ShareMetadata,
+		etag: string,
+	): Promise<number> {
+		const attempts = (metadata.failedAttempts || 0) + 1;
+		const next: ShareMetadata = { ...metadata, failedAttempts: attempts };
+		if (attempts >= FAIL_THRESHOLD) {
+			next.lockedUntil = Date.now() + LOCK_MS;
+		}
+
+		try {
+			const written = await bucket.put(
+				shareKey(shareId),
+				JSON.stringify(next),
+				{
+					httpMetadata: { contentType: "application/json" },
+					customMetadata: { targetBucket: next.bucket, targetKey: next.key },
+					onlyIf: { etagMatches: etag },
+				},
+			);
+			if (written) return attempts;
+		} catch {
+			// fall through
+		}
+		// Lost the race (or the write failed); report the pre-existing count so a
+		// concurrent burst cannot be leveraged to skip the lockout.
+		return metadata.failedAttempts || 0;
 	}
 
 	async handle(c: AppContext) {
@@ -298,6 +373,13 @@ export class GetShareLink extends OpenAPIRoute {
 		// string is recorded in access logs, browser history and the Referer of
 		// whatever the downloaded file links to.
 		if (shareMetadata.passwordHash) {
+			// Refuse guesses while the share is locked out -- before parsing the
+			// body or running PBKDF2, so a locked share costs an attacker nothing
+			// and the owner nothing.
+			if (shareMetadata.lockedUntil && Date.now() < shareMetadata.lockedUntil) {
+				return tooManyAttempts(shareMetadata.lockedUntil - Date.now());
+			}
+
 			if (c.req.method !== "POST") {
 				return passwordPrompt(false);
 			}
@@ -315,6 +397,19 @@ export class GetShareLink extends OpenAPIRoute {
 			);
 
 			if (!valid) {
+				// Count the miss and lock the share once it has had too many. The
+				// counter lives on the record itself, so it survives across the
+				// stateless worker's requests without a KV namespace or Durable
+				// Object. A successful unlock clears it (see claimDownload).
+				const attempts = await this.recordFailure(
+					bucket,
+					shareId,
+					shareMetadata,
+					object.etag,
+				);
+				if (attempts >= FAIL_THRESHOLD) {
+					return tooManyAttempts(LOCK_MS);
+				}
 				return passwordPrompt(true);
 			}
 

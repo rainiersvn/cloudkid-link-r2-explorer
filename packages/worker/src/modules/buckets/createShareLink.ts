@@ -22,7 +22,15 @@ export class CreateShareLink extends OpenAPIRoute {
 								.number()
 								.optional()
 								.describe("Expiration time in seconds"),
-							password: z.string().optional().describe("Optional password"),
+							// A share password is the only thing standing between a leaked
+							// link and the file once /share/* is public, and guessing is
+							// throttled but not impossible. Refuse trivially short ones; the
+							// throttle in getShareLink is the defence against the rest.
+							password: z
+								.string()
+								.min(8, "Share password must be at least 8 characters")
+								.optional()
+								.describe("Optional password (minimum 8 characters)"),
 							maxDownloads: z.number().optional().describe("Maximum downloads"),
 						}),
 					},
