@@ -48,6 +48,30 @@ test.describe("Share links", () => {
 		).toBeVisible({ timeout: 5_000 });
 	});
 
+	test("blocks creating a share with a too-short password", async ({
+		page,
+	}) => {
+		await page.goto(`/${BUCKET}/files`);
+		await expect(page.locator("text=e2e-share-file.txt")).toBeVisible({
+			timeout: 10_000,
+		});
+
+		await page.locator("text=e2e-share-file.txt").click({ button: "right" });
+		await page.locator(".q-menu").getByText("Create Share Link").click();
+		await expect(page.locator("text=Share File")).toBeVisible({
+			timeout: 5_000,
+		});
+
+		const createButton = page.getByRole("button", { name: "Create Link" });
+		// A short password disables the button; the worker would reject it anyway.
+		await page.locator('.q-dialog input[type="password"]').fill("short");
+		await expect(createButton).toBeDisabled();
+
+		// Clearing it (optional password) or making it long enough re-enables it.
+		await page.locator('.q-dialog input[type="password"]').fill("longenough");
+		await expect(createButton).toBeEnabled();
+	});
+
 	test("creates a share link with expiration and password", async ({
 		page,
 	}) => {

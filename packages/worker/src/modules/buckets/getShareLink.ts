@@ -11,6 +11,33 @@ const shareKey = (shareId: string) =>
 const MAX_CLAIM_ATTEMPTS = 5;
 
 /**
+ * Password-guess throttle for a single share. After FAIL_THRESHOLD consecutive
+ * wrong guesses the share stops accepting any for LOCK_MS. A successful unlock
+ * clears the count. This caps an attacker who has a leaked protected link to
+ * FAIL_THRESHOLD guesses per LOCK_MS -- roughly a thousand a day -- which a
+ * PBKDF2-per-guess dictionary attack cannot get through, and it bounds the
+ * owner's per-guess CPU cost at the same time.
+ */
+const FAIL_THRESHOLD = 10;
+const LOCK_MS = 15 * 60 * 1000;
+
+/** Refuse a guess while the share is locked out. */
+function tooManyAttempts(retryAfterMs: number): Response {
+	const seconds = Math.max(1, Math.ceil(retryAfterMs / 1000));
+	return new Response("Too many attempts. Try again later.", {
+		status: 429,
+		headers: {
+			"content-type": "text/plain; charset=utf-8",
+			"retry-after": String(seconds),
+			"cache-control": "no-store",
+			"referrer-policy": "no-referrer",
+			"x-content-type-options": "nosniff",
+			"x-robots-tag": "noindex, nofollow",
+		},
+	});
+}
+
+/**
  * Prompt for the share password.
  *
  * The form posts back to the current URL, so nothing from the request is
@@ -69,8 +96,54 @@ function passwordPrompt(retry: boolean): Response {
 			// the Referer sent to whatever the file links to.
 			"cache-control": "no-store",
 			"referrer-policy": "no-referrer",
+			// This prompt is reachable unauthenticated once Access bypasses
+			// /share/*. Lock it down: no sniffing, keep it out of search indexes,
+			// and allow only the inline <style> it needs -- nothing else, and the
+			// form may only post back to this same path.
+			"x-content-type-options": "nosniff",
+			"x-robots-tag": "noindex, nofollow",
+			"content-security-policy":
+				"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'",
 		},
 	});
+}
+
+/**
+ * Security headers for a served share file.
+ *
+ * The bytes come out of an R2 bucket that accepts unauthenticated writes (the
+ * email handler), and once Access bypasses /share/* they are served from the
+ * dashboard's own origin to anyone on the internet. Content-Disposition:
+ * attachment already stops most inline rendering; nosniff stops a browser
+ * second-guessing the type, the sandbox CSP neuters anything that does render,
+ * and X-Robots-Tag keeps shared private files out of search results.
+ */
+function hardenDownloadHeaders(headers: Headers) {
+	headers.set("cache-control", "no-store");
+	headers.set("referrer-policy", "no-referrer");
+	headers.set("x-content-type-options", "nosniff");
+	headers.set("content-security-policy", "default-src 'none'; sandbox");
+	headers.set("x-robots-tag", "noindex, nofollow");
+}
+
+/** Build the response headers for a share file from its R2 object/head result. */
+function shareFileHeaders(source: {
+	writeHttpMetadata: (headers: Headers) => void;
+	httpEtag: string;
+	key?: string;
+}): Headers {
+	const headers = new Headers();
+	source.writeHttpMetadata(headers);
+	headers.set("etag", source.httpEtag);
+
+	const fileName = (source.key || "").split("/").pop() || "download";
+	headers.set(
+		"Content-Disposition",
+		`attachment; filename="${encodeURIComponent(fileName)}"`,
+	);
+
+	hardenDownloadHeaders(headers);
+	return headers;
 }
 
 export class GetShareLink extends OpenAPIRoute {
@@ -81,7 +154,7 @@ export class GetShareLink extends OpenAPIRoute {
 		security: [], // Public endpoint - no auth required
 		request: {
 			params: z.object({
-				shareId: z.string().describe("10-character share ID"),
+				shareId: z.string().describe("Share ID"),
 			}),
 			// Declared but deliberately unused. The app sets raiseUnknownParameters,
 			// so leaving it out would turn an old ?password= link into a bare 400
@@ -110,6 +183,10 @@ export class GetShareLink extends OpenAPIRoute {
 			"403": {
 				description: "Download limit reached",
 			},
+			"429": {
+				description:
+					"Too many password attempts; the share is temporarily locked",
+			},
 		},
 	};
 
@@ -136,6 +213,31 @@ export class GetShareLink extends OpenAPIRoute {
 		reason?: "limit" | "gone" | "contended";
 		metadata?: ShareMetadata;
 	}> {
+		// Unlimited shares: the counter is only analytics, so a lost update under
+		// concurrency is harmless. Skip the compare-and-swap entirely -- with it,
+		// a burst of legitimate simultaneous downloads (one gallery link opened by
+		// many recipients at once) exhausts the retry budget and starts handing
+		// real users a 503. A last-writer-wins put cannot do that.
+		if (!initial.maxDownloads) {
+			const next: ShareMetadata = {
+				...initial,
+				currentDownloads: initial.currentDownloads + 1,
+				// A download only happens after the password (if any) was correct, so
+				// clear the guess throttle in the same write.
+				failedAttempts: 0,
+				lockedUntil: undefined,
+			};
+			try {
+				await bucket.put(shareKey(shareId), JSON.stringify(next), {
+					httpMetadata: { contentType: "application/json" },
+					customMetadata: { targetBucket: next.bucket, targetKey: next.key },
+				});
+			} catch {
+				// Best effort: never fail a download because the tally did not save.
+			}
+			return { ok: true, metadata: next };
+		}
+
 		let metadata = initial;
 		let etag = initialEtag;
 
@@ -150,6 +252,8 @@ export class GetShareLink extends OpenAPIRoute {
 			const next: ShareMetadata = {
 				...metadata,
 				currentDownloads: metadata.currentDownloads + 1,
+				failedAttempts: 0,
+				lockedUntil: undefined,
 			};
 
 			const written = await bucket.put(
@@ -175,6 +279,44 @@ export class GetShareLink extends OpenAPIRoute {
 		}
 
 		return { ok: false, reason: "contended" };
+	}
+
+	/**
+	 * Record one wrong password guess and return the resulting consecutive-failure
+	 * count. Best effort: a compare-and-swap keeps concurrent guesses from
+	 * clobbering each other's tally, but a lost race just means that guess is not
+	 * counted -- never that the download is blocked. When the count reaches the
+	 * threshold the share is locked for LOCK_MS.
+	 */
+	private async recordFailure(
+		bucket: R2Bucket,
+		shareId: string,
+		metadata: ShareMetadata,
+		etag: string,
+	): Promise<number> {
+		const attempts = (metadata.failedAttempts || 0) + 1;
+		const next: ShareMetadata = { ...metadata, failedAttempts: attempts };
+		if (attempts >= FAIL_THRESHOLD) {
+			next.lockedUntil = Date.now() + LOCK_MS;
+		}
+
+		try {
+			const written = await bucket.put(
+				shareKey(shareId),
+				JSON.stringify(next),
+				{
+					httpMetadata: { contentType: "application/json" },
+					customMetadata: { targetBucket: next.bucket, targetKey: next.key },
+					onlyIf: { etagMatches: etag },
+				},
+			);
+			if (written) return attempts;
+		} catch {
+			// fall through
+		}
+		// Lost the race (or the write failed); report the pre-existing count so a
+		// concurrent burst cannot be leveraged to skip the lockout.
+		return metadata.failedAttempts || 0;
 	}
 
 	async handle(c: AppContext) {
@@ -231,6 +373,13 @@ export class GetShareLink extends OpenAPIRoute {
 		// string is recorded in access logs, browser history and the Referer of
 		// whatever the downloaded file links to.
 		if (shareMetadata.passwordHash) {
+			// Refuse guesses while the share is locked out -- before parsing the
+			// body or running PBKDF2, so a locked share costs an attacker nothing
+			// and the owner nothing.
+			if (shareMetadata.lockedUntil && Date.now() < shareMetadata.lockedUntil) {
+				return tooManyAttempts(shareMetadata.lockedUntil - Date.now());
+			}
+
 			if (c.req.method !== "POST") {
 				return passwordPrompt(false);
 			}
@@ -248,6 +397,19 @@ export class GetShareLink extends OpenAPIRoute {
 			);
 
 			if (!valid) {
+				// Count the miss and lock the share once it has had too many. The
+				// counter lives on the record itself, so it survives across the
+				// stateless worker's requests without a KV namespace or Durable
+				// Object. A successful unlock clears it (see claimDownload).
+				const attempts = await this.recordFailure(
+					bucket,
+					shareId,
+					shareMetadata,
+					object.etag,
+				);
+				if (attempts >= FAIL_THRESHOLD) {
+					return tooManyAttempts(LOCK_MS);
+				}
 				return passwordPrompt(true);
 			}
 
@@ -272,6 +434,15 @@ export class GetShareLink extends OpenAPIRoute {
 			throw new HTTPException(404, {
 				message: "Shared file not found",
 			});
+		}
+
+		// A HEAD is a metadata probe, not a download. The runtime answers HEAD
+		// with the GET handler (minus the body), so without this a bodyless
+		// request would run claimDownload and silently spend the share's budget --
+		// letting anyone with the link exhaust maxDownloads, or a crawler destroy
+		// a one-shot share, without transferring a byte. Return the headers only.
+		if (c.req.method === "HEAD") {
+			return new Response(null, { headers: shareFileHeaders(exists) });
 		}
 
 		const claim = await this.claimDownload(
@@ -303,25 +474,11 @@ export class GetShareLink extends OpenAPIRoute {
 			});
 		}
 
-		// Return the file with proper headers
-		const headers = new Headers();
-		file.writeHttpMetadata(headers);
-		headers.set("etag", file.httpEtag);
-
-		// Add content disposition for download
-		const fileName = shareMetadata.key.split("/").pop() || "download";
-		headers.set(
-			"Content-Disposition",
-			`attachment; filename="${encodeURIComponent(fileName)}"`,
-		);
-
-		// A shared file is not something an intermediary should hold on to, and
-		// the referrer of a protected download should not carry this URL onward.
-		headers.set("cache-control", "no-store");
-		headers.set("referrer-policy", "no-referrer");
-
+		// Serve the file. shareFileHeaders() sets Content-Disposition: attachment,
+		// no-store/no-referrer, and the nosniff/CSP/noindex headers that matter
+		// now that these bytes are served unauthenticated from the app's origin.
 		return new Response(file.body, {
-			headers,
+			headers: shareFileHeaders(file),
 		});
 	}
 }
