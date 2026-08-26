@@ -23,8 +23,14 @@
           v-model="password"
           type="password"
           label="Password (optional)"
-          hint="Leave empty for no password protection"
+          hint="Leave empty, or use at least 8 characters"
           class="q-mb-md"
+          :rules="[
+            (val) =>
+              !val ||
+              val.length >= 8 ||
+              'Password must be at least 8 characters',
+          ]"
         />
 
         <q-input
@@ -72,6 +78,7 @@
           label="Create Link"
           color="primary"
           :loading="loading"
+          :disable="!passwordValid"
           @click="createShare"
         />
       </q-card-actions>
@@ -348,6 +355,12 @@ export default defineComponent({
 	computed: {
 		selectedBucket: function () {
 			return this.$route.params.bucket;
+		},
+		// The worker refuses a share password shorter than 8 characters, so don't
+		// let the dialog submit one and collect a 400. Empty is fine -- the
+		// password is optional.
+		passwordValid: function () {
+			return !this.password || this.password.length >= 8;
 		},
 	},
 	setup() {
