@@ -154,7 +154,7 @@ export class GetShareLink extends OpenAPIRoute {
 		security: [], // Public endpoint - no auth required
 		request: {
 			params: z.object({
-				shareId: z.string().describe("10-character share ID"),
+				shareId: z.string().describe("Share ID"),
 			}),
 			// Declared but deliberately unused. The app sets raiseUnknownParameters,
 			// so leaving it out would turn an old ?password= link into a bare 400

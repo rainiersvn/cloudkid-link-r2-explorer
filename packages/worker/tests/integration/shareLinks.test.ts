@@ -54,7 +54,7 @@ describe("Share Links Endpoints", () => {
 			};
 
 			expect(body.shareId).toBeDefined();
-			expect(body.shareId).toHaveLength(10);
+			expect(body.shareId).toHaveLength(32); // 128 bits, hex-encoded
 			expect(body.shareUrl).toContain(`/share/${body.shareId}`);
 			expect(body.expiresAt).toBeUndefined();
 
@@ -63,6 +63,27 @@ describe("Share Links Endpoints", () => {
 				`.r2-explorer/sharable-links/${body.shareId}.json`,
 			);
 			expect(shareMetadata).toBeDefined();
+		});
+
+		it("mints a high-entropy share ID", async () => {
+			// For an unprotected share the ID is the whole secret and the endpoint
+			// is public, so it must not be cheaply enumerable. 128 bits, hex.
+			const ids = new Set<string>();
+			for (let i = 0; i < 5; i++) {
+				const response = await app.fetch(
+					createTestRequest(
+						`/api/buckets/MY_TEST_BUCKET_1/${btoa(testFileName)}/share`,
+						"POST",
+						{},
+					),
+					env,
+					createExecutionContext(),
+				);
+				const { shareId } = (await response.json()) as { shareId: string };
+				expect(shareId).toMatch(/^[0-9a-f]{32}$/);
+				ids.add(shareId);
+			}
+			expect(ids.size).toBe(5); // all distinct
 		});
 
 		it("should create share link with expiration", async () => {

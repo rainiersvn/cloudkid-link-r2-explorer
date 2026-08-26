@@ -75,13 +75,22 @@ export class CreateShareLink extends OpenAPIRoute {
 			});
 		}
 
-		// Generate unique share ID
+		// Generate a unique share ID.
+		//
+		// For a share with no password the ID is the entire secret, and once
+		// Access bypasses /share/* anyone on the internet can try to guess it. The
+		// old ID was a UUID truncated to 10 hex chars -- 40 bits -- which is too
+		// little to guard media, receipts and consent files against enumeration.
+		// Use 128 bits of randomness instead. Existing 10-char links still resolve:
+		// lookup is by exact key, so length is irrelevant to old shares.
 		let shareId = "";
 		let attempts = 0;
 		const maxAttempts = 5;
 
 		while (attempts < maxAttempts) {
-			shareId = crypto.randomUUID().replace(/-/g, "").substring(0, 10);
+			shareId = Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) =>
+				byte.toString(16).padStart(2, "0"),
+			).join("");
 			const existingShare = await bucket.head(
 				`.r2-explorer/sharable-links/${shareId}.json`,
 			);
