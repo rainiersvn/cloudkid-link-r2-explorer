@@ -1,3 +1,9 @@
+# Weekly update PRs, each gated by the Build workflow, so a bump that breaks lint, the build or a test
+# does not merge. Minor and patch bumps arrive as grouped PRs; every major gets its own PR to review alone
+# (a group without update-types would carry majors in with them).
+#
+# cooldown: CI rejects any lockfile entry newer than 24h (minimumReleaseAge in pnpm-workspace.yaml), so
+# Dependabot waits three days before proposing a release.
 version: 2
 updates:
   - package-ecosystem: "npm"
@@ -15,12 +21,19 @@ updates:
       - "/packages/worker/dev"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 3
     groups:
       prod-deps:
         dependency-type: "production"
+        update-types: ["minor", "patch"]
       dev-deps:
         dependency-type: "development"
+        update-types: ["minor", "patch"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 3
