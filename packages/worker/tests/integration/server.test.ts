@@ -4,6 +4,20 @@ import { settings } from "../../src/foundation/settings"; // To check version
 import { createTestApp, createTestRequest } from "./setup"; // Assuming setup.ts is in the same directory
 
 describe("Server Endpoints", () => {
+	it("GET /api/health returns JSON without a Cloudflare Access JWT", async () => {
+		const app = createTestApp({ cfAccessTeamName: "test.cloudflareaccess.com" });
+		const response = await app.fetch(
+			createTestRequest("/api/health"),
+			env,
+			createExecutionContext(),
+		);
+		expect(response.status).toBe(200);
+		expect(response.headers.get("content-type")).toContain("application/json");
+		expect(response.headers.get("cache-control")).toBe("no-store");
+		expect(await response.json()).toEqual({ ok: true });
+	});
+
+
 	it("GET /api/server/config should return server information", async () => {
 		const appConfig = {
 			readonly: true,
