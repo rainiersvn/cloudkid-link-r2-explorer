@@ -72,9 +72,14 @@ export function R2Explorer(config?: R2ExplorerConfig) {
 	});
 
 	// Liveness is dependency-free and precedes app middleware; the Cloudflare edge policy remains unchanged.
-	app.all("/api/health", (c) => c.req.method === "GET"
-		? c.json({ ok: true }, 200, { "Cache-Control": "no-store" })
-		: c.json({ ok: false, error: "Method not allowed" }, 405, { Allow: "GET", "Cache-Control": "no-store" }));
+	app.all("/api/health", (c) =>
+		c.req.method === "GET"
+			? c.json({ ok: true }, 200, { "Cache-Control": "no-store" })
+			: c.json({ ok: false, error: "Method not allowed" }, 405, {
+					Allow: "GET",
+					"Cache-Control": "no-store",
+				}),
+	);
 
 	if (config.cors === true) {
 		app.use("/api/*", cors());
