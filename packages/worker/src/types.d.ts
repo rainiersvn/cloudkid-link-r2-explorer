@@ -1,4 +1,3 @@
-import type { CloudflareAccessVariables } from "@hono/cloudflare-access";
 import type { Context } from "hono";
 
 export type BasicAuthType = {
@@ -13,7 +12,7 @@ export type BucketConfig = {
 export type R2ExplorerConfig = {
 	readonly?: boolean;
 	cors?: boolean;
-	cfAccessTeamName?: string;
+	googleOAuth?: boolean;
 	dashboardUrl?: string;
 	emailRouting?:
 		| {
@@ -21,7 +20,7 @@ export type R2ExplorerConfig = {
 		  }
 		| false;
 	showHiddenFiles?: boolean;
-	basicAuth?: BasicAuth | BasicAuth[];
+	basicAuth?: BasicAuthType | BasicAuthType[];
 	buckets?: Record<string, BucketConfig>;
 };
 
@@ -48,5 +47,5 @@ export type AppVariables = {
 	config: R2ExplorerConfig;
 	authentication_type?: string;
 	authentication_username?: string;
-} & CloudflareAccessVariables;
+};
 export type AppContext = Context<{ Bindings: AppEnv; Variables: AppVariables }>;

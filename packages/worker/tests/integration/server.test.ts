@@ -4,8 +4,8 @@ import { settings } from "../../src/foundation/settings"; // To check version
 import { createTestApp, createTestRequest } from "./setup"; // Assuming setup.ts is in the same directory
 
 describe("Server Endpoints", () => {
-	it("GET /api/health returns JSON without a Cloudflare Access JWT", async () => {
-		const app = createTestApp({ cfAccessTeamName: "test.cloudflareaccess.com" });
+	it("GET /api/health returns JSON without a Google session", async () => {
+		const app = createTestApp({ googleOAuth: true });
 		const response = await app.fetch(
 			createTestRequest("/api/health"),
 			env,

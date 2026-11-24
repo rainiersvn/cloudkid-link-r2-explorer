@@ -12,7 +12,6 @@ export function createTestApp(config?: Partial<R2ExplorerConfig>) {
 		readonly: false, // Default to mutable for most tests, can be overridden
 		cors: true, // Enable CORS for testing API endpoints
 		// basicAuth: undefined, // Default to no basic auth
-		// cfAccessTeamName: undefined, // Default to no CF Access
 		// Other default configurations can be added here
 	};
 

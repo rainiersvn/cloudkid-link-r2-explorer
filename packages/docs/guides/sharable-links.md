@@ -25,25 +25,6 @@ When you create a sharable link:
 
 The actual file remains in your R2 bucket - the share link provides controlled, temporary access without moving or copying the file.
 
-:::warning Cloudflare Access Users
-If your R2 Explorer is protected by Cloudflare Access, you need to configure a bypass policy for share links to work publicly.
-
-**Setup Steps:**
-
-1. Go to your Cloudflare Zero Trust dashboard
-2. Navigate to **Access** → **Applications**
-3. Create a new **Self-hosted application** (or edit your existing R2 Explorer application)
-4. In the application settings:
-   - **Public hostname**: Your R2 Explorer domain
-   - **Path**: `/share/*`
-5. Create an access policy:
-   - **Policy name**: "Bypass for Public Shares"
-   - **Action**: **Bypass**
-   - **Session duration**: No session
-
-This ensures that `/share/*` endpoints are publicly accessible while keeping the rest of your R2 Explorer protected by Cloudflare Access.
-:::
-
 ## Creating a Sharable Link
 
 ### From the Dashboard
@@ -245,7 +226,7 @@ When a link is revoked:
 ### Authentication Bypass
 
 - Share links intentionally bypass authentication to allow public access
-- The `/share/:shareId` endpoint does not require Basic Auth or Cloudflare Access
+- The `/share/:shareId` endpoint does not require Basic Auth or Google sign-in
 - Use passwords and expiration times for sensitive files
 
 ### Password Security

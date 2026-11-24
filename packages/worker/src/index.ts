@@ -1,4 +1,3 @@
-import { cloudflareAccess } from "@hono/cloudflare-access";
 import {
 	type OpenAPIObjectConfigV31,
 	extendZodWithOpenApi,
@@ -8,6 +7,7 @@ import { type ExecutionContext, Hono } from "hono";
 import { basicAuth } from "hono/basic-auth";
 import { cors } from "hono/cors";
 import { z } from "zod";
+import { googleAuth } from "./foundation/google-auth";
 import { readOnlyMiddleware } from "./foundation/middlewares/readonly";
 import { settings } from "./foundation/settings";
 import { CopyObject } from "./modules/buckets/copyObject";
@@ -65,6 +65,9 @@ export function R2Explorer(config?: R2ExplorerConfig) {
 		await next();
 	});
 
+	// Upgrading a legacy configuration must keep the API protected.
+	const google = config.googleOAuth || "cfAccessTeamName" in config;
+	if (google) app.use("*", googleAuth);
 	const openapi = fromHono(app, {
 		schema: openapiSchema,
 		raiseUnknownParameters: true,
@@ -89,16 +92,7 @@ export function R2Explorer(config?: R2ExplorerConfig) {
 		app.use("/api/*", readOnlyMiddleware);
 	}
 
-	if (config.cfAccessTeamName) {
-		app.use("/api/*", cloudflareAccess(config.cfAccessTeamName));
-		app.use("/api/*", async (c, next) => {
-			c.set("authentication_type", "cloudflare-access");
-			c.set("authentication_username", c.get("accessPayload").email);
-			await next();
-		});
-	}
-
-	if (config.basicAuth) {
+	if (!google && config.basicAuth) {
 		openapi.registry.registerComponent("securitySchemes", "basicAuth", {
 			type: "http",
 			scheme: "basic",
@@ -158,8 +152,12 @@ export function R2Explorer(config?: R2ExplorerConfig) {
 	openapi.get("/share/:shareId", GetShareLink);
 	openapi.post("/share/:shareId", GetShareLink);
 
-	openapi.get("/", dashboardIndex);
-	openapi.get("*", dashboardRedirect);
+	if (google) {
+		app.get("*", (c) => c.env.ASSETS.fetch(c.req.raw));
+	} else {
+		openapi.get("/", dashboardIndex);
+		openapi.get("*", dashboardRedirect);
+	}
 
 	app.all("*", () =>
 		Response.json({ msg: "404, not found!" }, { status: 404 }),

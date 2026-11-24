@@ -57,12 +57,12 @@ export const useMainStore = defineStore("main", {
 				return true;
 			} catch (error) {
 				console.log(error);
-				if (error.response?.status === 302) {
-					// Handle cloudflare access login page
-					const nextUrl = error.response.headers.Location;
-					if (nextUrl) {
-						window.location.replace(nextUrl);
-					}
+				if (
+					error.response?.data?.error === "google_sign_in_required" &&
+					!isDevtestHost(window.location.hostname)
+				) {
+					window.location.assign("/auth/google/start");
+					return false;
 				}
 
 				if (handleError) {
@@ -89,7 +89,7 @@ export const useMainStore = defineStore("main", {
 						return false;
 					}
 
-					// Error bodies can be full HTML pages (e.g. Cloudflare Access
+					// Error bodies can be full HTML pages (e.g. upstream errors
 					// or GitHub Pages 404s) — never dump those into a toast
 					const message =
 						typeof respText === "string" &&
