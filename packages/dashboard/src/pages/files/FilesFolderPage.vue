@@ -1,8 +1,8 @@
 <template>
   <q-page class="">
     <div class="q-pa-md" ref="pageContainer" @scroll="handleScroll" style="height: 100vh; overflow-y: auto;">
-      <div class="flex items-center q-mb-sm">
-        <q-breadcrumbs class="col">
+      <div class="workspace-toolbar flex items-center q-mb-sm">
+        <q-breadcrumbs class="col workspace-breadcrumbs">
           <q-breadcrumbs-el style="cursor: pointer" v-for="obj in breadcrumbs" :key="obj.name" :label="obj.name" @click="breadcrumbsClick(obj)" />
         </q-breadcrumbs>
         <q-input
@@ -11,7 +11,7 @@
           v-model="searchQuery"
           placeholder="Search by prefix..."
           clearable
-          class="q-mr-sm"
+          class="q-mr-sm workspace-search"
           style="width: 200px"
           @keyup.enter="handleSearch"
           @clear="clearSearch"
@@ -23,6 +23,7 @@
         <q-btn
           flat
           dense
+          class="workspace-share-button"
           icon="link"
           color="primary"
           label="Manage Shares"
