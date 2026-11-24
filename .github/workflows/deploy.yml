@@ -26,23 +26,13 @@ jobs:
         run: pnpm install
       - name: Build dashboard and worker from this repo
         run: pnpm build
-      - name: Load Google client ID Worker variable
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          R2EXPLORER_WORKER_NAME: ${{ vars.R2EXPLORER_WORKER_NAME }}
-        run: |
-          client_id=$(curl --fail --silent --show-error \
-            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$R2EXPLORER_WORKER_NAME/settings" \
-            | jq -er '.result.bindings[] | select(.name == "GOOGLE_CLIENT_ID" and .type == "plain_text") | .text')
-          echo "GOOGLE_CLIENT_ID=$client_id" >> "$GITHUB_ENV"
       - name: Setup R2-Explorer
         env:
           R2EXPLORER_WORKER_NAME: ${{ vars.R2EXPLORER_WORKER_NAME }}
           R2EXPLORER_CONFIG: ${{ vars.R2EXPLORER_CONFIG }}
           R2EXPLORER_BUCKETS: ${{ vars.R2EXPLORER_BUCKETS }}
           R2EXPLORER_DOMAIN: ${{ vars.R2EXPLORER_DOMAIN }}
+          GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: node packages/github-action/prepareDeploy.js
       - name: Check Explorer OAuth bindings
@@ -50,12 +40,10 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
           R2EXPLORER_WORKER_NAME: ${{ vars.R2EXPLORER_WORKER_NAME }}
         run: |
-          curl --fail --silent --show-error \
-            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$R2EXPLORER_WORKER_NAME/settings" \
-            | jq -e '.success and any(.result.bindings[]; .name == "GOOGLE_CLIENT_ID" and .type == "plain_text")' >/dev/null
+          test -n "$GOOGLE_CLIENT_ID"
           pnpm exec wrangler secret list | jq -e '[.[].name] as $names | ["GOOGLE_CLIENT_SECRET", "GOOGLE_ALLOWED_EMAILS", "SESSION_SECRET"] - $names | if length == 0 then true else error("Missing Worker secrets: " + join(", ")) end'
       - name: Deploy
         uses: cloudflare/wrangler-action@v4
