@@ -23,12 +23,19 @@ afterEach(() => vi.unstubAllGlobals());
 
 it("protects dashboard, API and old Access clients even with incomplete configuration", async () => {
 	const login = await request("/");
-	expect(login.status).toBe(401);
+	expect(login.status).toBe(200);
 	expect(login.headers.get("content-type")).toContain("text/html");
 	const markup = await login.text();
+	expect(markup).toContain("<title>R2 Explorer</title>");
+	expect(markup).toContain('href="/favicon.svg"');
 	expect(markup).toContain("A quieter way to explore");
 	expect(markup).toContain('href="/auth/google/start"');
 	expect(markup).toContain("@media (max-width: 820px)");
+	const favicon = await request("/favicon.svg");
+	expect(favicon.status).toBe(200);
+	expect(favicon.headers.get("content-type")).toContain("image/svg+xml");
+	expect(await favicon.text()).toContain("<svg");
+	expect((await request("/favicon.ico")).status).toBe(204);
 	expect(
 		(
 			await request("/api/server/config", {

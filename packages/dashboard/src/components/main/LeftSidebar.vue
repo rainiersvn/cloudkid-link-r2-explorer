@@ -2,7 +2,7 @@
   <div class="q-pa-md" style="height: 100%">
     <div class="flex column" style="height: 100%">
       <q-btn v-if="mainStore.apiReadonly" color="red" stack class="q-mb-lg" label="Read only" />
-      <q-btn v-else icon="add" stack class="btn-cta q-mb-lg" label="New">
+      <q-btn v-else icon="add" stack class="btn-cta nav-create q-mb-lg" label="New">
         <q-menu>
           <q-list>
             <q-item clickable v-close-popup @click="$refs.createFile.open()">
@@ -43,10 +43,10 @@
         </q-menu>
       </q-btn>
 
-      <q-btn class="q-mb-sm" @click="gotoFiles" color="primary" icon="folder_copy" label="Files" stack />
-      <q-btn v-if="mainStore.config && mainStore.config.emailRouting !== false" class="q-mb-sm" @click="gotoEmail" color="primary" icon="email" label="Email" stack />
+      <q-btn class="nav-action q-mb-sm" :class="{ 'nav-action--active': selectedApp === 'files' }" @click="gotoFiles" color="primary" icon="folder_copy" label="Files" stack />
+      <q-btn v-if="mainStore.config && mainStore.config.emailRouting !== false" class="nav-action q-mb-sm" :class="{ 'nav-action--active': selectedApp === 'email' }" @click="gotoEmail" color="primary" icon="email" label="Email" stack />
 
-      <q-btn class="q-mb-sm q-mt-auto q-mb-0" @click="infoPopup=true" color="secondary" icon="question_mark"
+      <q-btn class="nav-action nav-help q-mt-auto q-mb-0" @click="infoPopup=true" color="secondary" icon="question_mark"
              label="Info"
              stack />
     </div>

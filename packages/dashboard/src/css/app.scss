@@ -52,6 +52,198 @@
   font-weight: 600;
 }
 
+// Explorer workspace surfaces carry the same quiet plum, violet, and gold
+// finish as the Google sign-in page while keeping the existing dark palette.
+body.body--dark {
+  background: #09080c;
+  color: #f2eff6;
+}
+
+.q-layout {
+  background:
+    radial-gradient(ellipse at 8% 0%, rgba(115, 73, 151, 0.11), transparent 34rem),
+    radial-gradient(ellipse at 92% 100%, rgba(173, 128, 59, 0.07), transparent 30rem),
+    #09080c;
+}
+
+.bg-brand-header {
+  backdrop-filter: blur(18px);
+  box-shadow: 0 8px 34px rgba(0, 0, 0, 0.2);
+}
+
+.q-toolbar {
+  min-height: 64px;
+  padding: 0 18px;
+}
+
+.sign-out-button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(204, 179, 223, 0.2);
+  border-radius: 11px;
+  color: #e6ddec;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sign-out-button:hover {
+  border-color: rgba(204, 179, 223, 0.48);
+  background: rgba(204, 179, 223, 0.08);
+}
+
+.q-drawer.workspace-drawer {
+  background: linear-gradient(180deg, #15121a 0%, #100e15 100%);
+  border-right: 1px solid rgba(204, 179, 223, 0.15);
+}
+
+.q-drawer.workspace-drawer .q-drawer__content {
+  padding: 12px 8px;
+}
+
+.q-drawer.workspace-drawer .q-btn {
+  width: 100%;
+  min-height: 62px;
+  border-radius: 14px;
+  transition: background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.q-drawer.workspace-drawer .q-btn.nav-action {
+  background: rgba(127, 53, 212, 0.75);
+}
+
+.q-drawer.workspace-drawer .q-btn.nav-action:hover,
+.q-drawer.workspace-drawer .q-btn.nav-action--active {
+  background: linear-gradient(145deg, #8b4bd2, #6930a8);
+  box-shadow: 0 8px 24px rgba(112, 54, 170, 0.24), inset 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.q-drawer.workspace-drawer .q-btn.nav-create {
+  color: #17111c;
+  font-weight: 700;
+  box-shadow: 0 8px 26px rgba(198, 146, 211, 0.14);
+}
+
+.q-drawer.workspace-drawer .q-btn.nav-help {
+  background: rgba(127, 76, 165, 0.72);
+}
+
+.q-page-container {
+  background: transparent;
+}
+
+.workspace-toolbar {
+  min-height: 56px;
+  gap: 16px;
+  margin: -4px -4px 16px;
+  padding: 8px 10px 12px;
+  border-bottom: 1px solid rgba(204, 179, 223, 0.1);
+  background: linear-gradient(105deg, rgba(38, 30, 46, 0.46), rgba(20, 17, 24, 0.08) 68%, transparent);
+}
+
+.workspace-breadcrumbs .q-breadcrumbs__el {
+  color: #e5ddea;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.workspace-breadcrumbs .q-breadcrumbs__separator {
+  color: #8f819b;
+}
+
+.workspace-search .q-field__control {
+  border-radius: 11px;
+  background: rgba(11, 9, 16, 0.56);
+}
+
+.workspace-share-button {
+  min-height: 42px;
+  padding: 0 12px;
+  border-radius: 11px;
+  color: #d4b3ed;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.workspace-share-button:hover {
+  background: rgba(196, 154, 235, 0.1);
+}
+
+.q-table__container {
+  overflow: hidden;
+  border: 1px solid rgba(204, 179, 223, 0.14);
+  border-radius: 16px;
+  background: rgba(22, 19, 27, 0.9);
+  box-shadow: 0 18px 52px rgba(0, 0, 0, 0.2), inset 0 1px rgba(255, 255, 255, 0.025);
+}
+
+.q-table thead tr,
+.q-table th {
+  background: rgba(37, 30, 45, 0.72);
+  color: #c6bdce;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.045em;
+}
+
+.q-table thead th {
+  height: 48px;
+  border-bottom: 1px solid rgba(204, 179, 223, 0.16);
+}
+
+.q-table tbody td {
+  height: 48px;
+  border-color: rgba(204, 179, 223, 0.1);
+  color: #e9e4ef;
+}
+
+.q-table tbody tr {
+  transition: background-color 140ms ease;
+}
+
+.q-table tbody tr:hover {
+  background: rgba(137, 83, 176, 0.1);
+}
+
+.q-field--outlined .q-field__control:before {
+  border-color: rgba(204, 179, 223, 0.3);
+}
+
+.q-field--outlined:hover .q-field__control:before {
+  border-color: rgba(205, 168, 235, 0.65);
+}
+
+.q-field--outlined.q-field--focused .q-field__control:after {
+  border-color: #c49aeb;
+}
+
+.q-menu,
+.q-dialog__inner > div {
+  border: 1px solid rgba(204, 179, 223, 0.17);
+  border-radius: 14px;
+  background: #19151f;
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.4);
+}
+
+.q-btn:focus-visible,
+.q-item:focus-visible {
+  outline: 2px solid #e5c58d;
+  outline-offset: 3px;
+}
+
+@media (max-width: 718px) {
+  .q-toolbar { padding: 0 10px; }
+  .q-drawer.workspace-drawer .q-drawer__content { padding: 10px 6px; }
+  .q-drawer.workspace-drawer .q-btn { min-height: 56px; }
+  .q-table__container { border-radius: 12px; }
+  .workspace-toolbar { flex-wrap: wrap; gap: 8px; }
+  .workspace-breadcrumbs { flex-basis: 100%; }
+  .workspace-search { width: 100% !important; flex: 1; }
+}
+
 $xs-breakpoint: 718px;
 $sm-breakpoint: 1024px;
 $md-breakpoint: 1439px;

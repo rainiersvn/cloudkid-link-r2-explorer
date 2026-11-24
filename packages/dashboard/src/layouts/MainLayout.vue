@@ -9,7 +9,7 @@
       </q-toolbar>
     </q-header>
 
-    <q-drawer :width="100" show-if-above v-model="leftDrawerOpen" side="left" bordered>
+    <q-drawer :width="100" show-if-above v-model="leftDrawerOpen" side="left" bordered class="workspace-drawer">
       <left-sidebar/>
     </q-drawer>
 
