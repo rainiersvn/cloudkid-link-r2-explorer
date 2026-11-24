@@ -1,7 +1,6 @@
 // Devtest builds are served from GitHub Pages, where there is no co-hosted
 // R2-Explorer Worker behind window.location.origin. Those builds call the
-// production explorer instead. Requests to it must carry the Cloudflare
-// Access (Zero Trust) cookie, hence withCredentials on the axios instance.
+// production explorer instead. Authenticated sessions belong to that origin.
 export const DEVTEST_API_SERVER = "https://explorer.cloudkid.link";
 
 export function isDevtestHost(hostname) {

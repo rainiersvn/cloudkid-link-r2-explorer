@@ -8,7 +8,7 @@ Here is all the available options:
 |--------------------|---------------------------|-------------------------------------------------------------------------------|-----------------------------------------------------------|
 | `readonly`         | `boolean` or `undefined`  | Controls the write access globally, default: `true`                           | `true`                                                    |
 | `cors`             | `boolean` or `undefined`  | Enables or disables CORS access to the internal API, default: `false`         | `true`                                                    |
-| `cfAccessTeamName` | `string`  or `undefined`  | When set enforces Cloudflare Access in all requests                           | `radar`  (taken from https://radar.cloudflareaccess.com/) |
+| `googleOAuth` | `boolean` | Require an approved Google account. See [Security](./security.md). | `true` |
 | `emailRouting`     | `object`  or `undefined`  | Customize Email Explorer, read more [here](/guides/setup-email-explorer.html) | `https://demo.r2explorer.com`                             |
 | `cacheAssets`      | `boolean`  or `undefined` | Cache dashboard assets by 5 minutes, default: `true`                          | `true`                                                    |
 | `buckets`          | `object`  or `undefined`  | Configure bucket-specific settings like public URLs                           | `{ BUCKET: { publicUrl: "https://cdn.example.com" } }`    |

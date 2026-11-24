@@ -16,7 +16,7 @@ hero:
 
 features:
   - title: 🔒 Secure Access Control
-    details: Implement Basic Authentication or integrate with Cloudflare Access for robust security.
+    details: Implement Basic Authentication or integrate with Google sign-in for robust security.
     link: /getting-started/security.md
   - title: 📁 Flexible R2 Bucket Management
     details: Configure and manage access to multiple R2 buckets with customizable bindings.

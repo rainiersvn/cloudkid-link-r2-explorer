@@ -14,7 +14,7 @@ const url = resolveServerUrl({
 });
 const api = axios.create({
 	baseURL: `${url}/api`,
-	// Devtest calls are cross-origin and must carry the Cloudflare Access cookie
+	// Devtest calls are cross-origin and must carry credentials when permitted by the browser
 	withCredentials: isDevtestHost(window.location.hostname),
 });
 

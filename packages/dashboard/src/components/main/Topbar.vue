@@ -8,6 +8,9 @@
     <span class="text-brand-gradient">R2-Explorer</span>
   </q-toolbar-title>
   <q-space />
+  <form v-if="mainStore.auth?.type === 'google'" method="post" action="/auth/logout">
+    <q-btn flat type="submit" label="Sign out" />
+  </form>
   <div v-if="mainStore.buckets.length > 1">
     <bucket-picker/>
   </div>

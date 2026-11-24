@@ -46,7 +46,7 @@ R2-Explorer transforms your Cloudflare R2 storage experience with a modern, user
 
 - **🔒 Security**
   - Basic Authentication support
-  - Cloudflare Access integration
+  - Google sign-in integration
   - Self-hosted on your Cloudflare account
 
 - **📁 File Management**

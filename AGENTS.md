@@ -39,7 +39,7 @@ R2-Explorer/
   - Multipart upload support
   - Public sharing links with password protection and expiration
   - Email routing integration
-  - Basic auth and Cloudflare Access authentication
+  - Basic auth and Google sign-in authentication
   - Read-only mode support
 
 **Main Export:**
@@ -93,7 +93,7 @@ export function R2Explorer(config?: R2ExplorerConfig)
 type R2ExplorerConfig = {
   readonly?: boolean;           // Default: true (prevents write operations)
   cors?: boolean;               // Enable CORS for API endpoints
-  cfAccessTeamName?: string;    // Cloudflare Access team name
+  googleOAuth?: boolean;        // Require an approved Google account
   dashboardUrl?: string;        // Custom dashboard URL
   emailRouting?: {              // Email routing configuration
     targetBucket: string;
@@ -201,7 +201,7 @@ export default R2Explorer({ /* config */ });
 ### 4. Authentication Middleware
 Two authentication methods supported:
 - **Basic Auth:** Hono's `basicAuth` middleware with custom verifier
-- **Cloudflare Access:** `@hono/cloudflare-access` middleware
+- **Google sign-in:** Google OIDC with PKCE and an email allowlist
 
 Middleware chain: CORS → ReadOnly → Authentication → API Routes
 
@@ -350,7 +350,7 @@ export class MyEndpoint extends OpenAPIRoute {
 
 ## Security Considerations
 
-1. **Authentication:** Always enable either Basic Auth or Cloudflare Access in production
+1. **Authentication:** Always enable either Basic Auth or Google sign-in in production
 2. **Read-Only Mode:** Keep enabled unless write access is required
 3. **CORS:** Only enable if external API access is needed
 4. **Secrets:** Use Wrangler secrets for sensitive config (not in code)

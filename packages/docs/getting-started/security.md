@@ -40,28 +40,12 @@ export default R2Explorer({ readonly: false, basicAuth: {
 ```
 
 
-## Authenticating with Cloudflare Access
+## Google sign-in
 
-In order to enable Cloudflare Access authentication, you only need to get your team name.
+The production deployment enables `googleOAuth: true`. Custom installations must also use `assets.run_worker_first = true` so dashboard navigations reach the Worker.
 
-You can find the team name, in the Zero trust dashboard -> Settings -> Custom Pages -> Team domain.
+1. Register an OAuth web client in Google Cloud with the exact callback `https://explorer.cloudkid.link/auth/google/callback` (substitute your own origin for other deployments).
+2. Use `wrangler secret put` on the Explorer Worker for `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET` (at least 32 random bytes, encoded as hex or base64), and `GOOGLE_ALLOWED_EMAILS` (comma-separated exact addresses). Copy the approved roster from the existing Explorer policy.
+3. Deploy behind the existing edge policy. Verify Google sign-in, sign-out, denial for an unlisted account, and anonymous API rejection. Then retire the Explorer Access application and its policy in Cloudflare Zero Trust and reconcile its companion Terraform declarations.
 
-In my account the team name is `r2explorer`.
-
-![Cloudflare Zero Trust Dashboard](/assets/cloudflare-access.png)
-
----
-
-Now update your `src/index.ts` file with the team name, like this:
-
-```ts
-import { R2Explorer } from 'r2-explorer';
-
-export default R2Explorer({ readonly: false, cfAccessTeamName: 'r2explorer' });
-```
-
-After this, just deploy your application normally with:
-
-```bash
-wrangler deploy
-```
+Sessions expire after 24 hours. Removing an address takes effect on the next authenticated request after the secret update. Rotating the session secret invalidates all sessions. Public shares and the health endpoint remain available without a session.

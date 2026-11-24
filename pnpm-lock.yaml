@@ -109,12 +109,12 @@ importers:
 
   packages/worker:
     dependencies:
-      '@hono/cloudflare-access':
-        specifier: ^0.3.1
-        version: 0.3.1(hono@4.13.4)
       chanfana:
         specifier: ^2.8.3
         version: 2.8.3
+      jose:
+        specifier: ^6.2.18
+        version: 6.2.18
       postal-mime:
         specifier: ^2.6.1
         version: 2.7.6
@@ -470,6 +470,7 @@ packages:
 
   '@cloudflare/vitest-pool-workers@0.10.15':
     resolution: {integrity: sha512-eISef+JvqC5xr6WBv2+kc6WEjxuKSrZ1MdMuIwdb4vsh8olqw7WHW5pLBL/UzAhbLVlXaAL1uH9UyxIlFkJe7w==}
+    deprecated: '@cloudflare/vitest-pool-workers has been renamed to @cloudflare/vitest-plugin. This package will not receive future updates.'
     peerDependencies:
       '@vitest/runner': 2.0.x - 3.2.x
       '@vitest/snapshot': 2.0.x - 3.2.x
@@ -1329,11 +1330,6 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
-
-  '@hono/cloudflare-access@0.3.1':
-    resolution: {integrity: sha512-ZY6tVPAOnCG7blKIAjkxqTL5B0FV+EUF8y0XgPwTNyARvdXmXVaUp1QGMd062PEn8bfod8O4v8f89NYlUaQgzw==}
-    peerDependencies:
-      hono: '*'
 
   '@hono/node-server@2.1.1':
     resolution: {integrity: sha512-ELuehkj5VCBdgEw9zs+ivkKwyzzUCSQuE96YmiPvn1ECBoZCczbFXJLeEGMTYjphP6gydh4pHMqEYPVMYUVgQg==}
@@ -3558,6 +3554,9 @@ packages:
 
   jackspeak@3.4.3:
     resolution: {integrity: sha512-OGlZQpz2yfahA/Rd1Y8Cd9SIEsqvXkLVoSw/cgwhnhFMDbsQFeZYoJJ7bIZBS9BcamUW96asq/npPWugM+RQBw==}
+
+  jose@6.2.18:
+    resolution: {integrity: sha512-doV4thUwgkrycJH4yLeqwTGIIZphHl+pk7CPReuMIhYhncmgzdko85MaCG4YQFTxqMFr1/oEH32tZuKKovcDEg==}
 
   joycon@3.1.1:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
@@ -6052,10 +6051,6 @@ snapshots:
   '@esbuild/win32-x64@0.28.2':
     optional: true
 
-  '@hono/cloudflare-access@0.3.1(hono@4.13.4)':
-    dependencies:
-      hono: 4.13.4
-
   '@hono/node-server@2.1.1(hono@4.13.4)':
     dependencies:
       hono: 4.13.4
@@ -8313,6 +8308,8 @@ snapshots:
       '@isaacs/cliui': 8.0.2
     optionalDependencies:
       '@pkgjs/parseargs': 0.11.0
+
+  jose@6.2.18: {}
 
   joycon@3.1.1: {}
 
