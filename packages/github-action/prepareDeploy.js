@@ -62,6 +62,11 @@ main = "src/index.ts"
 assets = { directory = "${assetsDir}", binding = "ASSETS", html_handling = "auto-trailing-slash", not_found_handling = "single-page-application", run_worker_first = true }
 `;
 
+if (!process.env.GOOGLE_CLIENT_ID) {
+	console.error("GOOGLE_CLIENT_ID variable is required to continue!");
+	process.exit(1);
+}
+
 if (R2EXPLORER_DOMAIN) {
 	wranglerConfig += `
 workers_dev = false
@@ -98,6 +103,11 @@ preview_bucket_name = '${bucketName}'
 `;
   }
 }
+
+wranglerConfig += `
+[vars]
+GOOGLE_CLIENT_ID = ${JSON.stringify(process.env.GOOGLE_CLIENT_ID)}
+`;
 
 console.log(wranglerConfig);
 fs.writeFileSync(`${baseDir}/wrangler.toml`, wranglerConfig);
