@@ -39,8 +39,13 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          R2EXPLORER_WORKER_NAME: ${{ vars.R2EXPLORER_WORKER_NAME }}
         run: |
-          pnpm exec wrangler secret list | jq -e '[.[].name] as $names | ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_ALLOWED_EMAILS", "SESSION_SECRET"] - $names | if length == 0 then true else error("Missing Worker secrets: " + join(", ")) end'
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$R2EXPLORER_WORKER_NAME/settings" \
+            | jq -e '.success and any(.result.bindings[]; .name == "GOOGLE_CLIENT_ID" and .type == "plain_text")' >/dev/null
+          pnpm exec wrangler secret list | jq -e '[.[].name] as $names | ["GOOGLE_CLIENT_SECRET", "GOOGLE_ALLOWED_EMAILS", "SESSION_SECRET"] - $names | if length == 0 then true else error("Missing Worker secrets: " + join(", ")) end'
       - name: Deploy
         uses: cloudflare/wrangler-action@v4
         with:
