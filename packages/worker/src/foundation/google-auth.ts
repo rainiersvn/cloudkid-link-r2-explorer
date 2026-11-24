@@ -16,6 +16,13 @@ const callback = "/auth/google/callback";
 const flowCookie = "__Host-r2_flow";
 const sessionCookie = "__Host-r2_session";
 const encoder = new TextEncoder();
+const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs><linearGradient id="a" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse"><stop stop-color="#d2a9f0"/><stop offset="1" stop-color="#e5c58d"/></linearGradient></defs>
+  <rect width="64" height="64" rx="17" fill="#15111b"/>
+  <circle cx="32" cy="32" r="22" fill="none" stroke="url(#a)" stroke-width="2.5"/>
+  <path d="m20 44 12-24 6 6-18 18Z" fill="url(#a)"/>
+  <path d="m32 20 14-4-8 14-6-10Z" fill="#ead3a0"/>
+</svg>`;
 const cookieOptions = {
 	secure: true,
 	httpOnly: true,
@@ -34,7 +41,8 @@ function loginPage(message?: string) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b0910">
   <meta name="description" content="Sign in to your Cloudflare R2 workspace.">
-  <title>Sign in · R2 Explorer</title>
+  <title>R2 Explorer</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <style>
     :root {
       color-scheme: dark;
@@ -195,6 +203,11 @@ interface Bindings {
 export async function googleAuth(c: AppContext, next: Next) {
 	const path = c.req.path;
 	if (path === "/api/health" || /^\/share\/[^/]+$/.test(path)) return next();
+	if (path === "/favicon.svg" && c.req.method === "GET")
+		return c.body(faviconSvg, 200, {
+			"Content-Type": "image/svg+xml; charset=utf-8",
+			"Cache-Control": "public, max-age=86400",
+		});
 	if (path === "/favicon.ico" && c.req.method === "GET")
 		return c.body(null, 204);
 	const env: Bindings = c.env as Bindings;
